@@ -1,0 +1,43 @@
+# '#' denotes a comment line
+#NR Charge Yield
+NRQYF0:"1 / (TMath::Power(x+[0], 0.5) * [1] * TMath::Power(y, [2]))"
+NRQYD0:"(-1.5) / ( TMath::Power(x+[0], 1.5) * [1] * TMath::Power(y, [2]) )"
+NRQYP0:"10,0.1,-0.1"
+NRQYLL0:"0,0,0"
+NRQYLH0:"0,0,0"
+NRQYS0:"0.1,0.001,0.001"
+NRQYF1:"1 / (TMath::Power(x, 0.5) * [0] * TMath::Power(y, [1]))"
+NRQYD1:"(-1.5) / ( TMath::Power(x, 1.5) * [0] * TMath::Power(y, [1]) )"
+NRQYP1:"0.1,-0.1"
+NRQYLL1:"0,0"
+NRQYLH1:"0,0"
+NRQYS1:"0.001,0.001"
+NRQYF2:"1 / (TMath::Power(x, [0]) * [1] * TMath::Power(y, [2]))"
+NRQYD2:"(-1 * ([0]+1)) / (TMath::Power(x, [0]+1) * [1] * TMath::Power(y, [2]))"
+NRQYP2:"0.5,0.1,-0.1"
+NRQYLL2:"0,0,0"
+NRQYLH2:"0,0,0"
+NRQYS2:"0.01,0.001,0.001"
+NRQYF3:"1 / (TMath::Power(x+[0], [1]) * [2] * TMath::Power(y, [3]))"
+NRQYD3:"(-1 * ([1]+1)) / (TMath::Power(x+[0], [1]+1) * [2] * TMath::Power(y, [3]))"
+NRQYP3:"10,0.5,0.1,-0.05"
+NRQYLL3:"0,0,0,0"
+NRQYLH3:"0,0,0,0"
+NRQYS3:"0.1,0.01,0.001,0.001"
+
+#NR Light Yield
+#None defined so far.
+
+#NR Total Yield
+NRTYF0:"[0] * TMath::Power(x, [1]) + [2]"
+NRTYD0:"[0] * [1] * TMath::Power(x, [1]-1)"
+NRTYP0:"10,0.1,15"
+NRTYLL0:"0,0,0"
+NRTYLH0:"0,0,0"
+NRTYS0:"0.1,0.001,0.1"
+NRTYF1:"[0] * TMath::Power(x, [1])"
+NRTYD1:"[0] * [1] * TMath::Power(x, [1]-1)"
+NRTYP1:"10,0.01"
+NRTYLL1:"0,0"
+NRTYLH1:"0,0"
+NRTYS1:"0.1,0.0001"
