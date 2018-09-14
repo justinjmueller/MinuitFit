@@ -1,0 +1,8 @@
+set(TARGET MinuitFit)
+add_library(FunctionObject SHARED FunctionObject.cpp)
+add_library(SettingsObject SHARED SettingsObject.cpp)
+add_library(DataObject SHARED DataObject.cpp)
+add_library(Models SHARED Models.cpp)
+target_link_libraries(Models ${ROOT_LIBRARIES} DataObject FunctionObject SettingsObject)
+add_executable(MinuitFit MinuitFit.cpp)
+target_link_libraries(MinuitFit ${ROOT_LIBRARIES} Models)

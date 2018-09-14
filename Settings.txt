@@ -1,0 +1,90 @@
+#A '#' denotes a commented line.
+
+#"FunctionDefinitions" sets the file name of the file containing the function definitions.
+FunctionDefinitions:"../ModelDefinitions.txt"
+
+#"NRQYData" sets the file name of the file containing NR charge yield data.
+NRQYData:"../NRChargeYield.csv"
+
+#"NRLYData" sets the file name of the file containing NR light yield data.
+NRLYData:"../NRLightYield.csv"
+
+#"NRTYData" sets the file name of the file containing NR total yield data.
+NRTYData:"../NRTotalYield.csv"
+
+#"Tolerance" affects how close to the minimum (Estimated distance to minimum - EDM) the minimizer
+#needs to be before stopping. The minimizer stops when EDM < 0.01*[Tolerance]*UP (UP defined below).
+Tolerance:"0.1"
+
+#"UP" is the number of standard deviations the minimizer reports as the error bar. For example,
+#UP=1 means that any reported error bars correspond to 1 standard deviation.
+UP:"1"
+
+#"MaxCalls" is the maximum number of calls the minimizer can attempt before timing out. Usually
+#500 is more than sufficient to find a minimum, but a higher number may be necessary in trickier
+#cases. The stopping conditions of the minimizer are EDM < 0.01*[Tolerance]*[UP] OR "MaxCalls"
+#reached.
+MaxCalls:"500"
+
+#"Verbosity" determines how "loud" the minimizer is. -1 is quietest, 0 is normal, 1 is loudest.
+#-1 or 0 is highly recommended. 1 is very loud.
+Verbosity:"-1"
+
+#"Algorithm" specifies which minimization algorithm to use. MIGRAD is a good default. A list of
+#other algorithms is published on the internet in several TMinuit information packets.
+Algorithm:"MIGRAD"
+
+#"GraphTitles" specifies the title of the graphs produced by BasicModel::DrawGraphs();
+GraphTitles:"Charge Yield at Various Fields"
+
+#"XTitles" specifies the x-axis title of the graphs produced by BasicModel::DrawGraphs();
+XTitles:"Energy [keV]"
+
+#"ZTitles" specifies the z-axis title of the graphs produced by BasicModel::DrawGraphs();
+ZTitles:"Charge Yield [electrons/keV]"
+
+#"XLow" specifies the lower bound of the energy range produced by BasicModel::DrawGraphs().
+XLow:"0"
+
+#"XHigh" specifies the upper bound of the energy range produced by BasicModel::DrawGraphs().
+XHigh:"250"
+
+#"YLow" specifies the lower bound of the field range produced by BasicModel::DrawGraphs();
+YLow:"0"
+
+#"YHigh" specifies the upper bound of the field range produced by BasicModel::DrawGraphs();
+YHigh:"2000"
+
+#"ZLow" specifies the lower bound of the yield range produced by BasicModel::DrawGraphs().
+ZLow:"0"
+
+#"ZHigh" specifies the upper bound of the yield range produced by BasicModel::DrawGraphs().
+ZHigh:"10"
+
+#"LogX" specifies whether or not to set the x-axis to a logarithmic scale.
+LogX:"true"
+
+#"LogY" specifies whether or not to set the y-axis to a logarithmic scale.
+LogY:"false"
+
+#"Palette" specifies the color palette. See the TColor class reference page for a list.
+#For example, kVisibleSpectrum is index 107.
+Palette:"107"
+
+#"MarkerStyle" specifies the style of the marker. See TAttMarker class reference for a list.
+MarkerStyle:"21"
+
+#"MarkerSize" specifies the size of the markers. Size is listed in pixels.
+MarkerSize:"1"
+
+#"LineStyle" specifies the style of the line. See TAttLine class reference for a list.
+LineStyle:"1"
+
+#"LineSize" specifies the size of the line. Size is listed in pixels.
+LineSize:"1"
+
+#"OutputToFile" specifies whether or not to write the graphs to a .root file.
+OutputToFile:"false"
+
+#"ROOTName" specifies the name of the output file, if output is desired.
+ROOTName:"ROOTFiles/OutputFile.root"
