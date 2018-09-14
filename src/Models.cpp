@@ -274,7 +274,7 @@ void NESTModel::BasicModel::DrawGraphs()
 
 void NESTModel::BasicModel::SetDefaultField(double Field)
 {
-  DefaultField = -1;
+  DefaultField = Field;
 }
 
 std::vector<double> NESTModel::BasicModel::GetParameters()
