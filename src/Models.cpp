@@ -32,7 +32,7 @@
 NESTModel::BasicModel::BasicModel(std::string modeltype, unsigned int id)
 {
   ID = id; //Set the model ID number.
-  Settings.reset(new SettingsObject("../Settings.txt")); //Set and load the settings file. This location is relative to where the program is being run.
+  Settings.reset(new SettingsObject("Settings.txt")); //Set and load the settings file. This location is relative to where the program is being run.
   NData = 0; //NData should be zero until data is loaded.
   Success = false; //By default, no success.
   DefaultField = -1; //-1 tells the operator() function that both the energy and field were provided.

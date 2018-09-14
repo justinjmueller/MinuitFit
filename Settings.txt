@@ -2,19 +2,19 @@
 
 #"FunctionDefinitions" sets the file name of the file containing the function definitions.
 #This location is relative to where you're running the program from.
-FunctionDefinitions:"../ModelDefinitions.txt"
+FunctionDefinitions:"ModelDefinitions.txt"
 
 #"NRQYData" sets the file name of the file containing NR charge yield data.
 #This location is relative to where you're running the program from.
-NRQYData:"../NRChargeYield.csv"
+NRQYData:"NRChargeYield.csv"
 
 #"NRLYData" sets the file name of the file containing NR light yield data.
 #This location is relative to where you're running the program from.
-NRLYData:"../NRLightYield.csv"
+NRLYData:"NRLightYield.csv"
 
 #"NRTYData" sets the file name of the file containing NR total yield data.
 #This location is relative to where you're running the program from.
-NRTYData:"../NRTotalYield.csv"
+NRTYData:"NRTotalYield.csv"
 
 #"Tolerance" affects how close to the minimum (Estimated distance to minimum - EDM) the minimizer
 #needs to be before stopping. The minimizer stops when EDM < 0.01*[Tolerance]*UP (UP defined below).
@@ -97,7 +97,7 @@ ROOTName:"ROOTFiles/OutputFile.root"
 #As an example, "Plots/text" will place plots in the "Plots" directory with "text" appended
 #to the front of the name. The ModelType and ModelID will follow "text". The directory is
 #relative to where you're running the program from.
-PlotScheme:"../Plots/"
+PlotScheme:"Plots/"
 
 #"PlotExtension" specifies the extension of the plot to be saved. ".pdf", will save the plot
 #as a PDF. There are many other options; see TPad::SaveAs() for more details.

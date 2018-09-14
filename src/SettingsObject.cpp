@@ -39,16 +39,12 @@ SettingsObject::SettingsObject(std::string SettingsFile)
 std::string SettingsObject::Query(std::string Key)
 {
   std::string QueryResult;
-  try
-  {
-    QueryResult = SettingsMap.at(Key);
-  }
-  catch (const std::out_of_range& oor)
+  if(SettingsMap.count(Key) != 0) QueryResult = SettingsMap.at(Key);
+  else
   {
     std::cerr << "Invalid Query: " << Key << std::endl;
-    throw std::out_of_range("Invalid Query");
+    throw std::exception();
   }
-  
   return QueryResult; //Return the value associated with Key.
 }
 
