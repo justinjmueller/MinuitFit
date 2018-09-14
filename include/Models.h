@@ -63,13 +63,12 @@ namespace NESTModel
     std::vector<double> DataZErrHigh;
   };
 
-  /*class NRChargeYield : public BasicModel
+  /*The following is left as an example for inheritance. You want to specify the following, as well
+    as redefine the desired member functions.
+  class NRChargeYield : public BasicModel
   {
   public:
     using BasicModel::BasicModel; //Tell the compiler that we WANT to inherit BaseModel's constructors.
-    std::string ModelType = "NRQY";
-  private:
-    std::string SetModelType() {ModelType = "NRQY";};
     };*/
 
   BasicModel* GlobalModel;

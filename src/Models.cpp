@@ -32,7 +32,7 @@
 NESTModel::BasicModel::BasicModel(std::string modeltype, unsigned int id)
 {
   ID = id; //Set the model ID number.
-  Settings.reset(new SettingsObject("../Settings.txt")); //Set and load the settings file.
+  Settings.reset(new SettingsObject("../Settings.txt")); //Set and load the settings file. This location is relative to where the program is being run.
   NData = 0; //NData should be zero until data is loaded.
   Success = false; //By default, no success.
   DefaultField = -1; //-1 tells the operator() function that both the energy and field were provided.
@@ -143,6 +143,8 @@ void NESTModel::BasicModel::DrawGraphs()
   std::string XTitle(Settings->Query("XTitles"));
   std::string ZTitle(Settings->Query("ZTitles"));
   std::string ROOTName(Settings->Query("ROOTName"));
+  std::string PlotScheme(Settings->Query("PlotScheme"));
+  std::string PlotExtension(Settings->Query("PlotExtension"));
   double XLow(std::stod(Settings->Query("XLow")));
   double XHigh(std::stod(Settings->Query("XHigh")));
   double ZLow(std::stod(Settings->Query("ZLow")));
@@ -218,17 +220,13 @@ void NESTModel::BasicModel::DrawGraphs()
     std::copy(MapIterator->second.at(4).begin(), MapIterator->second.at(4).end(), DataZErrLowArr);
     std::copy(MapIterator->second.at(5).begin(), MapIterator->second.at(5).end(), DataZErrHighArr);
     GraphArray[FieldIndex] = new TGraphAsymmErrors(MapIterator->second.at(0).size(), DataXArr, DataZArr, DataXErrLowArr, DataXErrHighArr, DataZErrLowArr, DataZErrHighArr); //Create the graph object for this field.
-    //GraphArray[FieldIndex]->SetTitle(static_cast<std::stringstream&>(std::stringstream("").flush() << "Charge Yield at Field = " << MapIterator->first << " V/cm").str().c_str());
-    //GraphArray[FieldIndex]->GetXaxis()->SetRangeUser(0, 250);
-    //GraphArray[FieldIndex]->GetXaxis()->CenterTitle();
-    //GraphArray[FieldIndex]->GetYaxis()->SetRangeUser(0, 10);
-    //GraphArray[FieldIndex]->GetYaxis()->CenterTitle();
     DefaultField = MapIterator->first; //Set the field so that operator() understands what field to use.
     FunctionArray[FieldIndex] = new TF1("f", *this, XLow, XHigh, NPar); //Create the function object.
     std::copy(Parameters.begin(), Parameters.end(), ParameterArr); //Copy the best fit parameters.
     FunctionArray[FieldIndex]->SetParameters(ParameterArr); //Set the parameters in the function.
     DefaultField = -1; //Reset after creating the functions.
     ColorList[FieldIndex] = Colors.at(int((MapIterator->first - YLow)/((YHigh - YLow)/(Colors.size()-1)))); //Calculate the color associated with this field value by breaking the field range into bins.
+    //Set graph and function draw options.
     GraphArray[FieldIndex]->SetMarkerColor(ColorList[FieldIndex]);
     GraphArray[FieldIndex]->SetLineColor(ColorList[FieldIndex]);
     FunctionArray[FieldIndex]->SetLineColor(ColorList[FieldIndex]);
@@ -243,6 +241,8 @@ void NESTModel::BasicModel::DrawGraphs()
   if(LogY) Canvas->SetLogy();
   Canvas->SetRightMargin(0.15);
 
+  //Add the color bar on the right side of the graph. This requires using a dummy TH2 object to create
+  //the TPaletteAxis object, then "stealing" and repurposing it for our uses.
   TH2F *HistDummy = new TH2F("HistDummy", "HistDummy", 100, 0, 10, 100, 0, 10);
   HistDummy->Fill(5,5,YHigh);
   HistDummy->SetContour(Colors.size());
@@ -254,21 +254,25 @@ void NESTModel::BasicModel::DrawGraphs()
   PaletteAxis->GetAxis()->CenterTitle();
   
   TFile *OutputFile;
-  if(OutputToFile) OutputFile = new TFile(ROOTName.c_str(), "RECREATE");
+  if(OutputToFile) OutputFile = new TFile(ROOTName.c_str(), "RECREATE"); //If we want to output to the file, then do so.
+  //Draw the TMultiGraph and set appropriate titles and features.
   MultiGraph->Draw("AP");
   MultiGraph->GetXaxis()->SetLimits(XLow,XHigh);
   MultiGraph->GetXaxis()->CenterTitle();
   MultiGraph->GetYaxis()->SetRangeUser(ZLow,ZHigh);
   MultiGraph->GetYaxis()->CenterTitle();
-  //Canvas->BuildLegend(0.6,0.690215,0.9,0.900239);
-  PaletteAxis->Draw();
-  for(unsigned int i(0); i < MapSize; ++i) FunctionArray[i]->Draw("SAME");
-  Canvas->Write();
-  MultiGraph->Write();
-  Canvas->SaveAs(static_cast<std::stringstream&>(std::stringstream("").flush() << "Plots/NRChargeYield_Model" << ID << ".pdf").str().c_str());
+  PaletteAxis->Draw(); //Draw the TPaletteAxis.
+  for(unsigned int i(0); i < MapSize; ++i) FunctionArray[i]->Draw("SAME"); //Draw each of the functions.
+  if(OutputToFile && OutputFile->IsOpen())
+  {
+    Canvas->Write();
+    MultiGraph->Write();
+  }
+  Canvas->SaveAs(static_cast<std::stringstream&>(std::stringstream("").flush() << PlotScheme << ModelType << "_Model" << ID << PlotExtension.c_str()).str().c_str());
   delete Canvas;
   if(OutputToFile) delete OutputFile;
   delete MultiGraph;
+  delete HistDummy;
   for(unsigned int i(0); i < MapSize; ++i) delete FunctionArray[i];
 }
 
