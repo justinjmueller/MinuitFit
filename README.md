@@ -43,3 +43,4 @@ The included Settings.txt file defines a large number of settings that MinuitFit
 ### Data File Structure
 
 The data files are regular .csv files. The program will ignore any line beginning with a '#', allowing for comments. This is useful to separate and label sections for each data source. There are seven fields that are expected to be filled: energy, energy uncertainty (lower error bar), energy uncertainty (uppper error bar), field, yield, yield uncertainty (lower error bar), and yield uncertainty (upper error bar). Each data point occupies a row, with the seven fields composing the columns. The data is separated only be a ',' and no spaces are used in non-comment lines. The constructor of BasicModel will load the appropriate data file (specified by ModelType with a location given in the settings file) and initialize the data appropriately.
+
