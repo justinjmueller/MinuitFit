@@ -88,7 +88,7 @@ LineStyle:"1"
 LineSize:"1"
 
 #"OutputToFile" specifies whether or not to write the graphs to a .root file.
-OutputToFile:"false"
+OutputToFile:"true"
 
 #"ROOTName" specifies the name of the output file, if output is desired.
 ROOTName:"ROOTFiles/OutputFile.root"
@@ -102,3 +102,7 @@ PlotScheme:"Plots/"
 #"PlotExtension" specifies the extension of the plot to be saved. ".pdf", will save the plot
 #as a PDF. There are many other options; see TPad::SaveAs() for more details.
 PlotExtension:".pdf"
+
+#"DrawPave" specifies whether or not to draw a TPaveText containing the model formula, the
+#parameters, and their errors on the plot drawn by DrawGraphs().
+DrawPave:"true"

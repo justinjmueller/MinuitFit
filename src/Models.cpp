@@ -22,6 +22,7 @@
 #include "TH2F.h" //Dummy to create a TPaletteAxis object.
 #include "TPaletteAxis.h" //Gradient axis bar.
 #include "TGaxis.h" //Axis contained in TPaletteAxis.
+#include "TFormula.h"
 
 //Custom includes
 #include "Models.h" //Header file for this implementation.
@@ -49,6 +50,7 @@ NESTModel::BasicModel::BasicModel(std::string modeltype, unsigned int id)
     MinuitMinimizer.reset(new TMinuit(NPar)); //Create the TMinuit object.
     ModelFunction.reset(new TF2("ModelFunction", FuncObject->GetFunction().c_str(), 0, 1000, 0, 5000)); //Create the 2D function that will do the heavy lifting for the function evaluating.
     ModelDerivative.reset(new TF2("ModelDerivative", FuncObject->GetDerivative().c_str(), 0, 1000, 0, 5000)); //Create the 2D derivative function that will do the heavy lifting for the derivative evaluating.
+    for(unsigned int i(0); i < FuncObject->GetParameters().size(); ++i) ModelFunction->SetParameter(i, FuncObject->GetParameters().at(i));
     DataObject DataObj(Settings->Query(std::string(ModelType+"Data"))); //Load data from the data file.
     DataX = DataObj.GetDataX(); //Set energy data.
     DataY = DataObj.GetDataY(); //Set field data.
@@ -104,6 +106,9 @@ bool NESTModel::BasicModel::Minimize()
 	Parameters.push_back(Parameter);
 	ParameterErrors.push_back(ParameterError);
       }
+      double ErrDef;
+      int NParI, NParX, IStat;
+      MinuitMinimizer->mnstat(Chisquare, EDM, ErrDef, NParI, NParX, IStat); //Store chisquare and EDM of fit.
     }
     return (ierflg == 0) ? true : false; //Return success based on ierflg.
   }
@@ -152,12 +157,13 @@ void NESTModel::BasicModel::DrawGraphs()
   bool LogX(Settings->Query("LogX") == "true" ? true : false);
   bool LogY(Settings->Query("LogY") == "true" ? true : false);
   bool OutputToFile(Settings->Query("OutputToFile") == "true" ? true : false);
+  bool DrawPave(Settings->Query("DrawPave") == "true" ? true : false);
   unsigned int PaletteEnum(stoi(Settings->Query("Palette")));
   unsigned int MarkerStyle(stoi(Settings->Query("MarkerStyle")));
   unsigned int MarkerSize(stoi(Settings->Query("MarkerSize")));
   unsigned int LineStyle(stoi(Settings->Query("LineStyle")));
   unsigned int LineSize(stoi(Settings->Query("LineSize")));
-  
+
   TColor::SetPalette(PaletteEnum,0);
   std::vector<int> Colors;
   for(unsigned int i(0); i < (unsigned int)TColor::GetNumberOfColors(); ++i) Colors.push_back(TColor::GetColorPalette(i));
@@ -241,18 +247,29 @@ void NESTModel::BasicModel::DrawGraphs()
   if(LogY) Canvas->SetLogy();
   Canvas->SetRightMargin(0.15);
 
+  //Create TPaveText object, if desired.
+  TPaveText* Pave;
+  if(DrawPave)
+  {
+    Pave = new TPaveText(0.6, 0.9-0.03*(NPar+2), 0.85, 0.9, "NDC");
+    Pave->AddText(FuncObject->GetFunction().c_str());
+    for(unsigned int i(0); i < NPar; ++i) Pave->AddText(static_cast<std::stringstream&>(std::stringstream("").flush() << "a_{" << i << "}=" << std::setprecision(3) << Parameters.at(i) << "#pm" << ParameterErrors.at(i)).str().c_str());
+    Pave->AddText(static_cast<std::stringstream&>(std::stringstream("").flush() << "Red. #chi^{2}=" << Chisquare / (NData-NPar)).str().c_str());
+    Pave->SetFillColorAlpha(0,0);
+    Pave->SetTextSizePixels(12);
+  }
+
   //Add the color bar on the right side of the graph. This requires using a dummy TH2 object to create
   //the TPaletteAxis object, then "stealing" and repurposing it for our uses.
   TH2F *HistDummy = new TH2F("HistDummy", "HistDummy", 100, 0, 10, 100, 0, 10);
   HistDummy->Fill(5,5,YHigh);
   HistDummy->SetContour(Colors.size());
   HistDummy->GetZaxis()->SetTitle("Field [V/cm]");
+  HistDummy->GetZaxis()->CenterTitle();
   HistDummy->Draw("COLZ");
   gPad->Update();
   TPaletteAxis* PaletteAxis = (TPaletteAxis*)HistDummy->GetListOfFunctions()->FindObject("palette");
-  PaletteAxis->GetAxis()->SetTitle("Field [V/cm]");
-  PaletteAxis->GetAxis()->CenterTitle();
-  
+
   TFile *OutputFile;
   if(OutputToFile) OutputFile = new TFile(ROOTName.c_str(), "RECREATE"); //If we want to output to the file, then do so.
   //Draw the TMultiGraph and set appropriate titles and features.
@@ -262,6 +279,7 @@ void NESTModel::BasicModel::DrawGraphs()
   MultiGraph->GetYaxis()->SetRangeUser(ZLow,ZHigh);
   MultiGraph->GetYaxis()->CenterTitle();
   PaletteAxis->Draw(); //Draw the TPaletteAxis.
+  if(DrawPave) Pave->Draw("SAME");
   for(unsigned int i(0); i < MapSize; ++i) FunctionArray[i]->Draw("SAME"); //Draw each of the functions.
   if(OutputToFile && OutputFile->IsOpen())
   {
@@ -273,6 +291,7 @@ void NESTModel::BasicModel::DrawGraphs()
   if(OutputToFile) delete OutputFile;
   delete MultiGraph;
   delete HistDummy;
+  if(DrawPave) delete Pave;
   for(unsigned int i(0); i < MapSize; ++i) delete FunctionArray[i];
 }
 

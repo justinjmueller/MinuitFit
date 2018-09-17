@@ -4,6 +4,7 @@
 //C++ includes.
 #include <memory>
 #include <vector>
+#include <cmath>
 
 //ROOT includes.
 #include "TMinuit.h"
@@ -42,6 +43,8 @@ namespace NESTModel
     unsigned int NPar;
     double DefaultField;
     bool Success;
+    double Chisquare;
+    double EDM;
     std::shared_ptr<TMinuit> MinuitMinimizer;
     std::vector<double> InitialVect;
     std::vector<double> StepVect;
@@ -83,8 +86,8 @@ namespace NESTModel
       xData[0] = GlobalModel->GetDataX().at(datum);
       xData[1] = GlobalModel->GetDataY().at(datum);
       Difference = GlobalModel->GetDataZ().at(datum) - (*GlobalModel)(xData, par);
-      if(Difference < 0) WRSS += (TMath::Power(Difference, 2.0)) / ( TMath::Power(GlobalModel->GetDataZErrHigh().at(datum),2.0) + TMath::Power( (0.5*(GlobalModel->GetDataXErrLow().at(datum) + GlobalModel->GetDataXErrHigh().at(datum))*(GlobalModel->Derivative(x, par)) ), 2.0) );
-      else WRSS += (TMath::Power(Difference, 2.0)) / ( TMath::Power(GlobalModel->GetDataZErrLow().at(datum),2.0) + TMath::Power( (0.5*(GlobalModel->GetDataXErrLow().at(datum) + GlobalModel->GetDataXErrHigh().at(datum))*(GlobalModel->Derivative(x, par)) ), 2.0) );
+      if(Difference < 0) WRSS += (TMath::Power(Difference, 2.0)) / ( TMath::Power(GlobalModel->GetDataZErrHigh().at(datum),2.0) + TMath::Power( (0.5*(GlobalModel->GetDataXErrLow().at(datum) + GlobalModel->GetDataXErrHigh().at(datum))*(GlobalModel->Derivative(xData, par)) ), 2.0) );
+      else WRSS += (TMath::Power(Difference, 2.0)) / ( TMath::Power(GlobalModel->GetDataZErrLow().at(datum),2.0) + TMath::Power( (0.5*(GlobalModel->GetDataXErrLow().at(datum) + GlobalModel->GetDataXErrHigh().at(datum))*(GlobalModel->Derivative(xData, par)) ), 2.0) );
     }
     result = WRSS;
   }
