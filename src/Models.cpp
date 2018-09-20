@@ -14,7 +14,8 @@
 #include "TGraphAsymmErrors.h" //ROOT 1D graph with asymmetric error bars.
 #include "TAxis.h" //For using the TAxis object.
 #include "TCanvas.h" //For using the TCanvas object.
-#include "TF2.h" //ROOT 1D function.
+#include "TF2.h" //ROOT 2D function.
+#include "TF1.h" //ROOT 1D function.
 #include "TMultiGraph.h" //Useful for managing multiple graphs on one plot.
 #include "TPaveText.h" //For adding text boxes to a TCanvas.
 #include "TFile.h" //ROOT file input/output.
@@ -48,9 +49,12 @@ NESTModel::BasicModel::BasicModel(std::string modeltype, unsigned int id)
     StepVect = FuncObject->GetStepSizes(); //Load step sizes.
     NPar = InitialVect.size(); //Set the number of parameters.
     MinuitMinimizer.reset(new TMinuit(NPar)); //Create the TMinuit object.
-    ModelFunction.reset(new TF2("ModelFunction", FuncObject->GetFunction().c_str(), 0, 1000, 0, 5000)); //Create the 2D function that will do the heavy lifting for the function evaluating.
-    ModelDerivative.reset(new TF2("ModelDerivative", FuncObject->GetDerivative().c_str(), 0, 1000, 0, 5000)); //Create the 2D derivative function that will do the heavy lifting for the derivative evaluating.
-    for(unsigned int i(0); i < FuncObject->GetParameters().size(); ++i) ModelFunction->SetParameter(i, FuncObject->GetParameters().at(i));
+    Is2DFit = FuncObject->GetFunction().find("y") != std::string::npos;
+    if(Is2DFit) ModelFunction2D.reset(new TF2("ModelFunction", FuncObject->GetFunction().c_str(), 0, 1000, 0, 5000)); //Create the 2D function that will do the heavy lifting for the function evaluating.
+    else ModelFunction1D.reset(new TF1("ModelFunction", FuncObject->GetFunction().c_str(),0,1000));
+    if(Is2DFit) ModelDerivative2D.reset(new TF2("ModelDerivative", FuncObject->GetDerivative().c_str(), 0, 1000, 0, 5000)); //Create the 2D derivative function that will do the heavy lifting for the derivative evaluating.
+    else ModelDerivative1D.reset(new TF1("ModelDerivative", FuncObject->GetDerivative().c_str(), 0, 1000));
+    //for(unsigned int i(0); i < FuncObject->GetParameters().size(); ++i) ModelFunction->SetParameter(i, FuncObject->GetParameters().at(i));
     DataObject DataObj(Settings->Query(std::string(ModelType+"Data"))); //Load data from the data file.
     DataX = DataObj.GetDataX(); //Set energy data.
     DataY = DataObj.GetDataY(); //Set field data.
@@ -67,20 +71,24 @@ NESTModel::BasicModel::BasicModel(std::string modeltype, unsigned int id)
 double NESTModel::BasicModel::operator()(double* x, double* p)
 {
   double CalculatedValue(0); //Default calculated value.
-  if(DefaultField == -1) CalculatedValue = ModelFunction->EvalPar(x,p); //Use given values in "x".
-  else //Use energy from "x" and field in "DefaultField".
+  if(Is2DFit)
   {
-    double x2[2];
-    x2[0] = x[0];
-    x2[1] = DefaultField;
-    CalculatedValue = ModelFunction->EvalPar(x2,p);
+    if(DefaultField == -1) CalculatedValue = ModelFunction2D->EvalPar(x,p); //Use given values in "x".
+    else //Use energy from "x" and field in "DefaultField".
+    {
+      double x2[2];
+      x2[0] = x[0];
+      x2[1] = DefaultField;
+      CalculatedValue = ModelFunction2D->EvalPar(x2,p);
+    }
   }
+  else CalculatedValue = ModelFunction1D->EvalPar(x,p);
   return CalculatedValue;
 }
 
 double NESTModel::BasicModel::Derivative(double* x, double* p)
 {
-  return ModelDerivative->EvalPar(x,p); //Evaluate derivative and return.
+  return (Is2DFit) ? ModelDerivative2D->EvalPar(x,p) : ModelDerivative1D->EvalPar(x,p); //Evaluate derivative and return.
 }
 
 bool NESTModel::BasicModel::Minimize()
@@ -110,6 +118,7 @@ bool NESTModel::BasicModel::Minimize()
       int NParI, NParX, IStat;
       MinuitMinimizer->mnstat(Chisquare, EDM, ErrDef, NParI, NParX, IStat); //Store chisquare and EDM of fit.
     }
+    else std::cerr << "The minimizer threw a flag. This is most likely a convergence issue, but this can be confirmed by setting the verbosity to > 0." << std::endl;
     return (ierflg == 0) ? true : false; //Return success based on ierflg.
   }
   else
@@ -164,135 +173,197 @@ void NESTModel::BasicModel::DrawGraphs()
   unsigned int LineStyle(stoi(Settings->Query("LineStyle")));
   unsigned int LineSize(stoi(Settings->Query("LineSize")));
 
-  TColor::SetPalette(PaletteEnum,0);
-  std::vector<int> Colors;
-  for(unsigned int i(0); i < (unsigned int)TColor::GetNumberOfColors(); ++i) Colors.push_back(TColor::GetColorPalette(i));
-  
-  //Separate data by field.
-  std::map<double, std::vector< std::vector<double> > > Map;
-  std::vector< std::vector<double> > TempOuterVector;
-  std::vector<double> TempInnerVector = {-1};
-  double YLow(0), YHigh(0);
-  for(unsigned int i(0); i < DataY.size(); ++i)
+  if(Is2DFit)
   {
-    if(DataY.at(i) > YHigh) YHigh = DataY.at(i);
-    //if(DataY.at(i) < YLow) YLow = DataY.at(i);
-    if(Map.count(DataY.at(i)) == 0) //Not a previously entered field value.
+    TColor::SetPalette(PaletteEnum,0);
+    std::vector<int> Colors;
+    for(unsigned int i(0); i < (unsigned int)TColor::GetNumberOfColors(); ++i) Colors.push_back(TColor::GetColorPalette(i));
+    
+    //Separate data by field.
+    std::map<double, std::vector< std::vector<double> > > Map;
+    std::vector< std::vector<double> > TempOuterVector;
+    std::vector<double> TempInnerVector = {-1};
+    double YLow(0), YHigh(0);
+    for(unsigned int i(0); i < DataY.size(); ++i)
     {
-      //Create the first entry for this field value with it's corresponding points.
-      TempInnerVector.at(0) = DataX.at(i);
-      TempOuterVector.push_back(TempInnerVector);
-      TempInnerVector.at(0) = DataXErrLow.at(i);
-      TempOuterVector.push_back(TempInnerVector);
-      TempInnerVector.at(0) = DataXErrHigh.at(i);
-      TempOuterVector.push_back(TempInnerVector);
-      TempInnerVector.at(0) = DataZ.at(i);
-      TempOuterVector.push_back(TempInnerVector);
-      TempInnerVector.at(0) = DataZErrLow.at(i);
-      TempOuterVector.push_back(TempInnerVector);
-      TempInnerVector.at(0) = DataZErrHigh.at(i);
-      TempOuterVector.push_back(TempInnerVector);
-      Map.emplace(DataY.at(i), TempOuterVector);
-      TempOuterVector.clear();
+      if(DataY.at(i) > YHigh) YHigh = DataY.at(i);
+      //if(DataY.at(i) < YLow) YLow = DataY.at(i);
+      if(Map.count(DataY.at(i)) == 0) //Not a previously entered field value.
+      {
+	//Create the first entry for this field value with it's corresponding points.
+	TempInnerVector.at(0) = DataX.at(i);
+	TempOuterVector.push_back(TempInnerVector);
+	TempInnerVector.at(0) = DataXErrLow.at(i);
+	TempOuterVector.push_back(TempInnerVector);
+	TempInnerVector.at(0) = DataXErrHigh.at(i);
+	TempOuterVector.push_back(TempInnerVector);
+	TempInnerVector.at(0) = DataZ.at(i);
+	TempOuterVector.push_back(TempInnerVector);
+	TempInnerVector.at(0) = DataZErrLow.at(i);
+	TempOuterVector.push_back(TempInnerVector);
+	TempInnerVector.at(0) = DataZErrHigh.at(i);
+	TempOuterVector.push_back(TempInnerVector);
+	Map.emplace(DataY.at(i), TempOuterVector);
+	TempOuterVector.clear();
+      }
+      else //The field has been previously entered.
+      {
+	//Add a new set of points to this field value.
+	Map.find(DataY.at(i))->second.at(0).push_back(DataX.at(i));
+	Map.find(DataY.at(i))->second.at(1).push_back(DataXErrLow.at(i));
+	Map.find(DataY.at(i))->second.at(2).push_back(DataXErrHigh.at(i));
+	Map.find(DataY.at(i))->second.at(3).push_back(DataZ.at(i));
+	Map.find(DataY.at(i))->second.at(4).push_back(DataZErrLow.at(i));
+	Map.find(DataY.at(i))->second.at(5).push_back(DataZErrHigh.at(i));
+      }
     }
-    else //The field has been previously entered.
+    const unsigned int MapSize(Map.size()); //Need to create this many separate graphs.
+    TGraphAsymmErrors* GraphArray[MapSize]; //Create the array that will hold these graphs.
+    TF1* FunctionArray[MapSize]; //Create the array that will hold the functions to draw.
+    const unsigned int MaxPoints(NData); //At most, we have this many points for a given field.
+    double DataXArr[MaxPoints], DataXErrLowArr[MaxPoints], DataXErrHighArr[MaxPoints], DataZArr[MaxPoints], DataZErrLowArr[MaxPoints], DataZErrHighArr[MaxPoints]; //Arrays for handing off data to graph constructor.
+    unsigned int FieldIndex(0); //Will need this later.
+    double ParameterArr[NPar]; //Need to have parameters stored in an array so we can set the functions parameters.
+    unsigned int ColorList[MapSize]; //Stores the color of each function.
+    TMultiGraph* MultiGraph = new TMultiGraph(); //Create the multigraph object.
+    MultiGraph->SetTitle(std::string(Title+";"+XTitle+";"+ZTitle).c_str());
+    for(std::map<double, std::vector< std::vector<double> > >::iterator MapIterator = Map.begin(); MapIterator != Map.end(); ++MapIterator, ++FieldIndex)
     {
-      //Add a new set of points to this field value.
-      Map.find(DataY.at(i))->second.at(0).push_back(DataX.at(i));
-      Map.find(DataY.at(i))->second.at(1).push_back(DataXErrLow.at(i));
-      Map.find(DataY.at(i))->second.at(2).push_back(DataXErrHigh.at(i));
-      Map.find(DataY.at(i))->second.at(3).push_back(DataZ.at(i));
-      Map.find(DataY.at(i))->second.at(4).push_back(DataZErrLow.at(i));
-      Map.find(DataY.at(i))->second.at(5).push_back(DataZErrHigh.at(i));
+      //Copy the data into arrays for use in the TGraphAsymmErrors construction.
+      std::copy(MapIterator->second.at(0).begin(), MapIterator->second.at(0).end(), DataXArr);
+      std::copy(MapIterator->second.at(1).begin(), MapIterator->second.at(1).end(), DataXErrLowArr);
+      std::copy(MapIterator->second.at(2).begin(), MapIterator->second.at(2).end(), DataXErrHighArr);
+      std::copy(MapIterator->second.at(3).begin(), MapIterator->second.at(3).end(), DataZArr);
+      std::copy(MapIterator->second.at(4).begin(), MapIterator->second.at(4).end(), DataZErrLowArr);
+      std::copy(MapIterator->second.at(5).begin(), MapIterator->second.at(5).end(), DataZErrHighArr);
+      GraphArray[FieldIndex] = new TGraphAsymmErrors(MapIterator->second.at(0).size(), DataXArr, DataZArr, DataXErrLowArr, DataXErrHighArr, DataZErrLowArr, DataZErrHighArr); //Create the graph object for this field.
+      DefaultField = MapIterator->first; //Set the field so that operator() understands what field to use.
+      FunctionArray[FieldIndex] = new TF1("f", *this, XLow, XHigh, NPar); //Create the function object.
+      std::copy(Parameters.begin(), Parameters.end(), ParameterArr); //Copy the best fit parameters.
+      FunctionArray[FieldIndex]->SetParameters(ParameterArr); //Set the parameters in the function.w
+      DefaultField = -1; //Reset after creating the functions.
+      ColorList[FieldIndex] = Colors.at(int((MapIterator->first - YLow)/((YHigh - YLow)/(Colors.size()-1)))); //Calculate the color associated with this field value by breaking the field range into bins.
+      //Set graph and function draw options.
+      GraphArray[FieldIndex]->SetMarkerColor(ColorList[FieldIndex]);
+      GraphArray[FieldIndex]->SetLineColor(ColorList[FieldIndex]);
+      FunctionArray[FieldIndex]->SetLineColor(ColorList[FieldIndex]);
+      GraphArray[FieldIndex]->SetMarkerSize(MarkerSize);
+      GraphArray[FieldIndex]->SetMarkerStyle(MarkerStyle);
+      GraphArray[FieldIndex]->SetLineWidth(LineSize);
+      GraphArray[FieldIndex]->SetLineStyle(LineStyle);
+      MultiGraph->Add(GraphArray[FieldIndex]);
     }
-  }
-  const unsigned int MapSize(Map.size()); //Need to create this many separate graphs.
-  TGraphAsymmErrors* GraphArray[MapSize]; //Create the array that will hold these graphs.
-  TF1* FunctionArray[MapSize]; //Create the array that will hold the functions to draw.
-  const unsigned int MaxPoints(NData); //At most, we have this many points for a given field.
-  double DataXArr[MaxPoints], DataXErrLowArr[MaxPoints], DataXErrHighArr[MaxPoints], DataZArr[MaxPoints], DataZErrLowArr[MaxPoints], DataZErrHighArr[MaxPoints]; //Arrays for handing off data to graph constructor.
-  unsigned int FieldIndex(0); //Will need this later.
-  double ParameterArr[NPar]; //Need to have parameters stored in an array so we can set the functions parameters.
-  unsigned int ColorList[MapSize]; //Stores the color of each function.
-  TMultiGraph* MultiGraph = new TMultiGraph(); //Create the multigraph object.
-  MultiGraph->SetTitle(std::string(Title+";"+XTitle+";"+ZTitle).c_str());
-  for(std::map<double, std::vector< std::vector<double> > >::iterator MapIterator = Map.begin(); MapIterator != Map.end(); ++MapIterator, ++FieldIndex)
-  {
-    //Copy the data into arrays for use in the TGraphAsymmErrors construction.
-    std::copy(MapIterator->second.at(0).begin(), MapIterator->second.at(0).end(), DataXArr);
-    std::copy(MapIterator->second.at(1).begin(), MapIterator->second.at(1).end(), DataXErrLowArr);
-    std::copy(MapIterator->second.at(2).begin(), MapIterator->second.at(2).end(), DataXErrHighArr);
-    std::copy(MapIterator->second.at(3).begin(), MapIterator->second.at(3).end(), DataZArr);
-    std::copy(MapIterator->second.at(4).begin(), MapIterator->second.at(4).end(), DataZErrLowArr);
-    std::copy(MapIterator->second.at(5).begin(), MapIterator->second.at(5).end(), DataZErrHighArr);
-    GraphArray[FieldIndex] = new TGraphAsymmErrors(MapIterator->second.at(0).size(), DataXArr, DataZArr, DataXErrLowArr, DataXErrHighArr, DataZErrLowArr, DataZErrHighArr); //Create the graph object for this field.
-    DefaultField = MapIterator->first; //Set the field so that operator() understands what field to use.
-    FunctionArray[FieldIndex] = new TF1("f", *this, XLow, XHigh, NPar); //Create the function object.
-    std::copy(Parameters.begin(), Parameters.end(), ParameterArr); //Copy the best fit parameters.
-    FunctionArray[FieldIndex]->SetParameters(ParameterArr); //Set the parameters in the function.
-    DefaultField = -1; //Reset after creating the functions.
-    ColorList[FieldIndex] = Colors.at(int((MapIterator->first - YLow)/((YHigh - YLow)/(Colors.size()-1)))); //Calculate the color associated with this field value by breaking the field range into bins.
-    //Set graph and function draw options.
-    GraphArray[FieldIndex]->SetMarkerColor(ColorList[FieldIndex]);
-    GraphArray[FieldIndex]->SetLineColor(ColorList[FieldIndex]);
-    FunctionArray[FieldIndex]->SetLineColor(ColorList[FieldIndex]);
-    GraphArray[FieldIndex]->SetMarkerSize(MarkerSize);
-    GraphArray[FieldIndex]->SetMarkerStyle(MarkerStyle);
-    GraphArray[FieldIndex]->SetLineWidth(LineSize);
-    GraphArray[FieldIndex]->SetLineStyle(LineStyle);
-    MultiGraph->Add(GraphArray[FieldIndex]);
-  }
-  auto Canvas = new TCanvas("YieldCanvas", "YieldCanvas", 1920, 1080);
-  if(LogX) Canvas->SetLogx();
-  if(LogY) Canvas->SetLogy();
-  Canvas->SetRightMargin(0.15);
+    auto Canvas = new TCanvas("YieldCanvas", "YieldCanvas", 1920, 1080);
+    if(LogX) Canvas->SetLogx();
+    if(LogY) Canvas->SetLogy();
+    Canvas->SetRightMargin(0.15);
+    
+    //Create TPaveText object, if desired.
+    TPaveText* Pave;
+    if(DrawPave)
+    {
+      Pave = new TPaveText(0.6, 0.9-0.03*(NPar+2), 0.85, 0.9, "NDC");
+      Pave->AddText(FuncObject->GetFunction().c_str());
+      for(unsigned int i(0); i < NPar; ++i) Pave->AddText(static_cast<std::stringstream&>(std::stringstream("").flush() << "a_{" << i << "}=" << std::setprecision(3) << Parameters.at(i) << "#pm" << ParameterErrors.at(i)).str().c_str());
+      Pave->AddText(static_cast<std::stringstream&>(std::stringstream("").flush() << "Red. #chi^{2}=" << Chisquare / (NData-NPar)).str().c_str());
+      Pave->SetFillColorAlpha(0,0);
+      Pave->SetTextSizePixels(12);
+    }
 
-  //Create TPaveText object, if desired.
-  TPaveText* Pave;
-  if(DrawPave)
-  {
-    Pave = new TPaveText(0.6, 0.9-0.03*(NPar+2), 0.85, 0.9, "NDC");
-    Pave->AddText(FuncObject->GetFunction().c_str());
-    for(unsigned int i(0); i < NPar; ++i) Pave->AddText(static_cast<std::stringstream&>(std::stringstream("").flush() << "a_{" << i << "}=" << std::setprecision(3) << Parameters.at(i) << "#pm" << ParameterErrors.at(i)).str().c_str());
-    Pave->AddText(static_cast<std::stringstream&>(std::stringstream("").flush() << "Red. #chi^{2}=" << Chisquare / (NData-NPar)).str().c_str());
-    Pave->SetFillColorAlpha(0,0);
-    Pave->SetTextSizePixels(12);
+    //Add the color bar on the right side of the graph. This requires using a dummy TH2 object to create
+    //the TPaletteAxis object, then "stealing" and repurposing it for our uses.
+    TH2F *HistDummy = new TH2F("HistDummy", "HistDummy", 100, 0, 10, 100, 0, 10);
+    HistDummy->Fill(5,5,YHigh);
+    HistDummy->SetContour(Colors.size());
+    HistDummy->GetZaxis()->SetTitle("Field [V/cm]");
+    HistDummy->GetZaxis()->CenterTitle();
+    HistDummy->Draw("COLZ");
+    gPad->Update();
+    TPaletteAxis* PaletteAxis = (TPaletteAxis*)HistDummy->GetListOfFunctions()->FindObject("palette");
+    
+    TFile *OutputFile;
+    if(OutputToFile) OutputFile = new TFile(ROOTName.c_str(), "RECREATE"); //If we want to output to the file, then do so.
+    //Draw the TMultiGraph and set appropriate titles and features.
+    MultiGraph->Draw("AP");
+    MultiGraph->GetXaxis()->SetLimits(XLow,XHigh);
+    MultiGraph->GetXaxis()->CenterTitle();
+    MultiGraph->GetYaxis()->SetRangeUser(ZLow,ZHigh);
+    MultiGraph->GetYaxis()->CenterTitle();
+    PaletteAxis->Draw(); //Draw the TPaletteAxis.
+    if(DrawPave) Pave->Draw("SAME");
+    for(unsigned int i(0); i < MapSize; ++i) FunctionArray[i]->Draw("SAME"); //Draw each of the functions.
+    if(OutputToFile && OutputFile->IsOpen())
+    {
+      Canvas->Write();
+      MultiGraph->Write();
+    }
+    Canvas->SaveAs(static_cast<std::stringstream&>(std::stringstream("").flush() << PlotScheme << ModelType << "_Model" << ID << PlotExtension.c_str()).str().c_str());
+    delete Canvas;
+    if(OutputToFile) delete OutputFile;
+    delete MultiGraph;
+    delete HistDummy;
+    if(DrawPave) delete Pave;
+    for(unsigned int i(0); i < MapSize; ++i) delete FunctionArray[i];
   }
-
-  //Add the color bar on the right side of the graph. This requires using a dummy TH2 object to create
-  //the TPaletteAxis object, then "stealing" and repurposing it for our uses.
-  TH2F *HistDummy = new TH2F("HistDummy", "HistDummy", 100, 0, 10, 100, 0, 10);
-  HistDummy->Fill(5,5,YHigh);
-  HistDummy->SetContour(Colors.size());
-  HistDummy->GetZaxis()->SetTitle("Field [V/cm]");
-  HistDummy->GetZaxis()->CenterTitle();
-  HistDummy->Draw("COLZ");
-  gPad->Update();
-  TPaletteAxis* PaletteAxis = (TPaletteAxis*)HistDummy->GetListOfFunctions()->FindObject("palette");
-
-  TFile *OutputFile;
-  if(OutputToFile) OutputFile = new TFile(ROOTName.c_str(), "RECREATE"); //If we want to output to the file, then do so.
-  //Draw the TMultiGraph and set appropriate titles and features.
-  MultiGraph->Draw("AP");
-  MultiGraph->GetXaxis()->SetLimits(XLow,XHigh);
-  MultiGraph->GetXaxis()->CenterTitle();
-  MultiGraph->GetYaxis()->SetRangeUser(ZLow,ZHigh);
-  MultiGraph->GetYaxis()->CenterTitle();
-  PaletteAxis->Draw(); //Draw the TPaletteAxis.
-  if(DrawPave) Pave->Draw("SAME");
-  for(unsigned int i(0); i < MapSize; ++i) FunctionArray[i]->Draw("SAME"); //Draw each of the functions.
-  if(OutputToFile && OutputFile->IsOpen())
+  else
   {
-    Canvas->Write();
-    MultiGraph->Write();
+    auto Canvas = new TCanvas("YieldCanvas", "YieldCanvas", 1920, 1080);
+    TPaveText* Pave;
+    if(LogX) Canvas->SetLogx();
+    if(LogY) Canvas->SetLogy();
+    Canvas->SetRightMargin(0.15);
+
+    TFile *OutputFile;
+    if(OutputToFile) OutputFile = new TFile(ROOTName.c_str(), "RECREATE"); //If we want to output to the file, then do so.
+
+    double DataXArr[NData], DataXErrLowArr[NData], DataXErrHighArr[NData], DataZArr[NData], DataZErrLowArr[NData], DataZErrHighArr[NData];
+    std::copy(DataX.begin(), DataX.end(), DataXArr);
+    std::copy(DataXErrLow.begin(), DataXErrLow.end(), DataXErrLowArr);
+    std::copy(DataXErrHigh.begin(), DataXErrHigh.end(), DataXErrHighArr);
+    std::copy(DataZ.begin(), DataZ.end(), DataZArr);
+    std::copy(DataZErrLow.begin(), DataZErrLow.end(), DataZErrLowArr);
+    std::copy(DataZErrHigh.begin(), DataZErrHigh.end(), DataZErrHighArr);
+    TGraphAsymmErrors* Graph = new TGraphAsymmErrors(NData, DataXArr, DataZArr, DataXErrLowArr, DataXErrHighArr, DataZErrLowArr, DataZErrHighArr);
+    TF1* FitFunction = new TF1("f", *this, XLow, XHigh, NPar); //Create the function object.
+    for(unsigned int i(0); i < NPar; ++i) FitFunction->SetParameter(i, Parameters.at(i));
+    Graph->GetXaxis()->SetLimits(XLow,XHigh);
+    Graph->GetXaxis()->CenterTitle();
+    Graph->GetYaxis()->SetRangeUser(ZLow,ZHigh);
+    Graph->GetYaxis()->CenterTitle();
+    Graph->SetTitle(std::string(Title+";"+XTitle+";"+ZTitle).c_str());
+    Graph->SetMarkerColor(kBlue);
+    Graph->SetLineColor(kBlue);
+    FitFunction->SetLineColor(kRed);
+    Graph->SetMarkerSize(MarkerSize);
+    Graph->SetMarkerStyle(MarkerStyle);
+    Graph->SetLineWidth(LineSize);
+    Graph->SetLineStyle(LineStyle);
+    
+    Graph->Draw("AP");
+    FitFunction->Draw("SAME");
+    if(DrawPave)
+    {
+      Pave = new TPaveText(0.6, 0.9-0.03*(NPar+2), 0.85, 0.9, "NDC");
+      Pave->AddText(FuncObject->GetFunction().c_str());
+      for(unsigned int i(0); i < NPar; ++i) Pave->AddText(static_cast<std::stringstream&>(std::stringstream("").flush() << "a_{" << i << "}=" << std::setprecision(3) << Parameters.at(i) << "#pm" << ParameterErrors.at(i)).str().c_str());
+      Pave->AddText(static_cast<std::stringstream&>(std::stringstream("").flush() << "Red. #chi^{2}=" << Chisquare / (NData-NPar)).str().c_str());
+      Pave->SetFillColorAlpha(0,0);
+      Pave->SetTextSizePixels(12);
+      Pave->Draw("SAME");
+    }
+    if(OutputToFile && OutputFile->IsOpen())
+    {
+      Canvas->Write();
+      Graph->Write();
+    }
+    Canvas->SaveAs(static_cast<std::stringstream&>(std::stringstream("").flush() << PlotScheme << ModelType << "_Model" << ID << PlotExtension.c_str()).str().c_str());
+    delete Canvas;
+    if(OutputToFile) delete OutputFile;
+    delete Graph;
+    if(DrawPave) delete Pave;
+    delete FitFunction;
   }
-  Canvas->SaveAs(static_cast<std::stringstream&>(std::stringstream("").flush() << PlotScheme << ModelType << "_Model" << ID << PlotExtension.c_str()).str().c_str());
-  delete Canvas;
-  if(OutputToFile) delete OutputFile;
-  delete MultiGraph;
-  delete HistDummy;
-  if(DrawPave) delete Pave;
-  for(unsigned int i(0); i < MapSize; ++i) delete FunctionArray[i];
+      
 }
 
 void NESTModel::BasicModel::SetDefaultField(double Field)

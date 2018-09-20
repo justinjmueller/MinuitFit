@@ -10,6 +10,7 @@
 #include "TMinuit.h"
 #include "TMath.h"
 #include "TF2.h"
+#include "TF1.h"
 
 //Custom Includes
 #include "SettingsObject.h"
@@ -43,6 +44,7 @@ namespace NESTModel
     unsigned int NPar;
     double DefaultField;
     bool Success;
+    bool Is2DFit;
     double Chisquare;
     double EDM;
     std::shared_ptr<TMinuit> MinuitMinimizer;
@@ -54,8 +56,10 @@ namespace NESTModel
     std::vector<double> ParameterErrors;
     std::shared_ptr<SettingsObject> Settings;
     std::shared_ptr<FunctionObject> FuncObject;
-    std::shared_ptr<TF2> ModelFunction;
-    std::shared_ptr<TF2> ModelDerivative;
+    std::shared_ptr<TF2> ModelFunction2D;
+    std::shared_ptr<TF2> ModelDerivative2D;
+    std::shared_ptr<TF1> ModelFunction1D;
+    std::shared_ptr<TF1> ModelDerivative1D;
     std::string ModelType;
     std::vector<double> DataX;
     std::vector<double> DataXErrLow;
