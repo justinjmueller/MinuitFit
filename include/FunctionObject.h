@@ -3,6 +3,7 @@
 //C++ includes.
 #include <string>
 #include <vector>
+#include <map>
 
 //ROOT includes.
 
@@ -25,5 +26,6 @@ class FunctionObject
   std::vector<double> LimitsLow;
   std::vector<double> LimitsHigh;
   std::vector<double> StepSizes;
+  std::map<std::string,std::string> DefinitionsMap;
 };
 #endif

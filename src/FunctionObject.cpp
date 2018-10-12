@@ -3,6 +3,8 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <cctype>
+#include <map>
 
 //ROOT includes.
 
@@ -12,13 +14,13 @@
 FunctionObject::FunctionObject(std::string Definitions, std::string SearchString, unsigned int ModelID, bool& Success)
 {
   std::ifstream Input(Definitions);
-  std::string Line, FunctionString, DerivativeString, ParameterString, LimitLowString, LimitHighString, StepSizesString, Tmp;
+  std::string Line, FunctionString, DerivativeString, ParameterString, LimitLowString, LimitHighString, StepSizesString, Tmp, ModelIDString;
   std::size_t First, Last;
   bool Found(false);
 
   if(Input.is_open())
   {
-    while(std::getline(Input, Line) && !Found)
+    while(std::getline(Input, Line))
     {
       if(Line[0] != '#')
       {
@@ -27,41 +29,51 @@ FunctionObject::FunctionObject(std::string Definitions, std::string SearchString
 	  First = Line.find("\"");
 	  Last = Line.find("\"",First+1);
 	  FunctionString = Line.substr(First+1,Last-First-1);
+	  DefinitionsMap.emplace(SearchString+std::string("F")+std::to_string(ModelID), FunctionString);
 	}
 	else if(Line.find(SearchString+std::string("D")+std::to_string(ModelID)) !=std::string::npos)
 	{
 	  First = Line.find("\"");
 	  Last = Line.find("\"",First+1);
 	  DerivativeString = Line.substr(First+1,Last-First-1);
+	  DefinitionsMap.emplace(SearchString+std::string("D")+std::to_string(ModelID), DerivativeString);
 	}
 	else if(Line.find(SearchString+std::string("P")+std::to_string(ModelID)) !=std::string::npos)
 	{
 	  First = Line.find("\"");
 	  Last = Line.find("\"",First+1);
 	  ParameterString = Line.substr(First+1,Last-First-1);
+	  DefinitionsMap.emplace(SearchString+std::string("P")+std::to_string(ModelID), ParameterString);
 	}
 	else if(Line.find(SearchString+std::string("LL")+std::to_string(ModelID)) !=std::string::npos)
 	{
 	  First = Line.find("\"");
 	  Last = Line.find("\"",First+1);
 	  LimitLowString = Line.substr(First+1,Last-First-1);
+	  DefinitionsMap.emplace(SearchString+std::string("LL")+std::to_string(ModelID), LimitLowString);
 	}
 	else if(Line.find(SearchString+std::string("LH")+std::to_string(ModelID)) !=std::string::npos)
 	{
 	  First = Line.find("\"");
 	  Last = Line.find("\"",First+1);
 	  LimitHighString = Line.substr(First+1,Last-First-1);
+	  DefinitionsMap.emplace(SearchString+std::string("LH")+std::to_string(ModelID), LimitHighString);
 	}
 	else if(Line.find(SearchString+std::string("S")+std::to_string(ModelID)) !=std::string::npos)
 	{
 	  First = Line.find("\"");
 	  Last = Line.find("\"",First+1);
 	  StepSizesString = Line.substr(First+1,Last-First-1);
+	  DefinitionsMap.emplace(SearchString+std::string("S")+std::to_string(ModelID), StepSizesString);
 	}
-	Found = (FunctionString != "" && DerivativeString != "" && ParameterString != "" && LimitLowString != "", LimitHighString != "" && StepSizesString != "");
+	Found = (FunctionString != "" && DerivativeString != "" && ParameterString != "" && LimitLowString != "", LimitHighString != "" && StepSizesString != "");	
       }
     }
   }
+
+  //for(unsigned int i(0); i < Line.size(); ++i) if(std::isdigit(Line[i])) ModelIDString += Line[i];
+  //if(ModelIDString != "")
+  
   if(Found)
   {
     Function = FunctionString;
