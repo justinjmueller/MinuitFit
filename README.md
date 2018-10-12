@@ -4,6 +4,27 @@ MinuitFit is intended to make the testing and fitting of different yield models 
 ## Prerequisites
 MinuitFit makes use of several ROOT libraries. The only version tested is my current version (v6-10-08). Additionally, some C++11 coding standards are used, so a compiler with support for this is required.
 
+## Building MinuitFit
+The program depends on several ROOT libraries, so before proceeding it is necessary to set up the ROOT environmental variables properly. In the directory where ROOT is installed, execute
+
+```
+source ./bin/thisroot.sh
+```
+
+Now in the top level directory of MinuitFit, execute
+
+```
+cmake .
+```
+
+to generate the make file, then
+
+```
+make
+```
+
+to build the program.
+
 ## Usage
 The program can be run by issuing the command
 
@@ -39,6 +60,8 @@ To add a new model, it is enough to duplicate these six lines, and change the re
 ### Changing MinuitFit Settings
 
 The included Settings.txt file defines a large number of settings that MinuitFit uses while running. Non-empty lines without a '#' beginning the line are searched by the program to find the relevant settings. Each setting has a comment describing what it is for, so configuration should be streamlined. The settings file should be located in the directory where the program is being run, but the data files and function definitions file can have their location (relative to the current directory) are specified inside the settings file. This allows a user to keep separate function definitions files. When defining a new ModelType (as discussed above), it is necessary to also add a setting specifying the data file name and location for the new ModelType. For NR charge yield, this setting is named "NRQYData". The program expects this structure, so if a ModelType called XYZ is added, then the setting XYZData must also be added to the settings file and filled with the proper file location.
+
+By default, new plots will be created in the current directory. This can be changed by setting "PlotScheme" to the desired location in the settings file. Additionally, there is functionality within the program to output the graphs in a ROOT file, though this is disabled by default.
 
 ### Data File Structure
 
