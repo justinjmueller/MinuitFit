@@ -28,15 +28,15 @@ namespace NESTModel
     void PrintResults();
     void DrawGraphs();
     void SetDefaultField(double Field);
-    std::vector<double> GetParameters();
-    std::vector<double> GetParameterErrors();
-    std::vector<double> GetDataX();
-    std::vector<double> GetDataXErrLow();
-    std::vector<double> GetDataXErrHigh();
-    std::vector<double> GetDataY();
-    std::vector<double> GetDataZ();
-    std::vector<double> GetDataZErrLow();
-    std::vector<double> GetDataZErrHigh();
+    std::vector<double>& GetParameters();
+    std::vector<double>& GetParameterErrors();
+    std::vector<double>& GetDataX();
+    std::vector<double>& GetDataXErrLow();
+    std::vector<double>& GetDataXErrHigh();
+    std::vector<double>& GetDataY();
+    std::vector<double>& GetDataZ();
+    std::vector<double>& GetDataZErrLow();
+    std::vector<double>& GetDataZErrHigh();
     
   private:
     unsigned int ID;

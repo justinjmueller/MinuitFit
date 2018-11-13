@@ -31,13 +31,17 @@ DataObject::DataObject(std::string FileName)
     }
     for(unsigned int i(0); i < DataList.size(); i+=7) //Parse and store the data.
     {
-      DataX.push_back(DataList.at(i+0));
-      DataXErrLow.push_back(DataList.at(i+1));
-      DataXErrHigh.push_back(DataList.at(i+2));
-      DataY.push_back(DataList.at(i+3));
-      DataZ.push_back(DataList.at(i+4));
-      DataZErrLow.push_back(DataList.at(i+5));
-      DataZErrHigh.push_back(DataList.at(i+6));
+      if(i + 6 < DataList.size())
+      {
+	DataX.push_back(DataList.at(i+0));
+	DataXErrLow.push_back(DataList.at(i+1));
+	DataXErrHigh.push_back(DataList.at(i+2));
+	DataY.push_back(DataList.at(i+3));
+	DataZ.push_back(DataList.at(i+4));
+	DataZErrLow.push_back(DataList.at(i+5));
+	DataZErrHigh.push_back(DataList.at(i+6));
+      }
+      else std::cerr << "Data file configured incorrectly. Check for a missing entry in a column." << std::endl;
     }
   }
   Input.close(); //Close the input file.

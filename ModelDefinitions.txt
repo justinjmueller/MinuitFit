@@ -1,4 +1,13 @@
 # '#' denotes a comment line
+
+#ER Charge Yield
+ERQYF0:"([0]+[1]/TMath::Power(1.005+TMath::Power(y/[2], -2.55),51.502))*(32.988 - [3]/(1+TMath::Power(y/(-4.7+[4]*TMath::Exp([5]/0.33926)),0.57))) + (1000/23.6 + 6.5*(1-1/TMath::Power(y/1047.408,1.9851)) - ([0]+[1]/TMath::Power(1.005+TMath::Power(y/[2], -2.55),51.502))*(32.988 - [3]/(1+TMath::Power(y/(-4.7+[4]*TMath::Exp([5]/0.33926)),0.57))))/(5*TMath::Power(1+10.304*TMath::Power(x,2.1393),0.35535))+8*1.2/(1+(1052.264+(14159350000 -1652.364)/(1+TMath::Power(y/0.02673144, 2.764691)))*TMath::Power(x, -2))"
+ERQYD0:"19.2*(1052.26+1.41593*TMath::Power(10,10)/(22325.3*pow(y,2.76469)+1))/(TMath::Power(x,3)*TMath::Power(((1052.26+1.41593*TMath::Power(10,10)/(22325.3*pow(y,2.76469)+1))/TMath::Power(x,2))+1, 2)) - 1.56662*TMath::Power(x,1.1393)*(1000/23.6 + 6.5*(1-1/TMath::Power(y/1047.408,1.9851)) - ([0]+[1]/TMath::Power(1.005+TMath::Power(y/[2], -2.55),51.502))*(32.988 - [3]/(1+TMath::Power(y/(-4.7+[4]*TMath::Exp([5]/0.33926)),0.57))))/TMath::Power((10.304*TMath::Power(x,2.1393)+1),1.35535)"
+ERQYP0:"0.6,0.6407, 621.74, 752.988, 0.026115, 1.784"
+ERQYLL0:"0.1,0.5, 500.0, 400.0, 0.02, 1.75"
+ERQYLH0:"1,0.7, 700.0, 1000.0, 0.03, 1.8"
+ERQYS0:"0.01,0.05, 5.0, 10.0, 0.001, 0.01"
+
 #NR Charge Yield
 NRQYF0:"1 / (TMath::Power(x+[0], 0.5) * [1] * TMath::Power(y, [2]))"
 NRQYD0:"(-1.5) / ( TMath::Power(x+[0], 1.5) * [1] * TMath::Power(y, [2]) )"
@@ -26,7 +35,7 @@ NRQYLH3:"0,0,0,0"
 NRQYS3:"0.1,0.01,0.001,0.001"
 
 #NR Light Yield
-#None defined so far.
+#NRLYF0:
 
 #NR Total Yield
 NRTYF0:"[0] * TMath::Power(x, [1])"

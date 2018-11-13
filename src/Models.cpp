@@ -23,7 +23,6 @@
 #include "TH2F.h" //Dummy to create a TPaletteAxis object.
 #include "TPaletteAxis.h" //Gradient axis bar.
 #include "TGaxis.h" //Axis contained in TPaletteAxis.
-#include "TFormula.h"
 
 //Custom includes
 #include "Models.h" //Header file for this implementation.
@@ -371,47 +370,47 @@ void NESTModel::BasicModel::SetDefaultField(double Field)
   DefaultField = Field;
 }
 
-std::vector<double> NESTModel::BasicModel::GetParameters()
+std::vector<double>& NESTModel::BasicModel::GetParameters()
 {
   return Parameters;
 }
 
-std::vector<double> NESTModel::BasicModel::GetParameterErrors()
+std::vector<double>& NESTModel::BasicModel::GetParameterErrors()
 {
   return ParameterErrors;
 }
 
-std::vector<double> NESTModel::BasicModel::GetDataX()
+std::vector<double>& NESTModel::BasicModel::GetDataX()
 {
   return DataX;
 }
 
-std::vector<double> NESTModel::BasicModel::GetDataXErrLow()
+std::vector<double>& NESTModel::BasicModel::GetDataXErrLow()
 {
   return DataXErrLow;
 }
 
-std::vector<double> NESTModel::BasicModel::GetDataXErrHigh()
+std::vector<double>& NESTModel::BasicModel::GetDataXErrHigh()
 {
   return DataXErrHigh;
 }
 
-std::vector<double> NESTModel::BasicModel::GetDataY()
+std::vector<double>& NESTModel::BasicModel::GetDataY()
 {
   return DataY;
 }
 
-std::vector<double> NESTModel::BasicModel::GetDataZ()
+std::vector<double>& NESTModel::BasicModel::GetDataZ()
 {
   return DataZ;
 }
 
-std::vector<double> NESTModel::BasicModel::GetDataZErrLow()
+std::vector<double>& NESTModel::BasicModel::GetDataZErrLow()
 {
   return DataZErrLow;
 }
 
-std::vector<double> NESTModel::BasicModel::GetDataZErrHigh()
+std::vector<double>& NESTModel::BasicModel::GetDataZErrHigh()
 {
   return DataZErrHigh;
 }

@@ -4,6 +4,10 @@
 #This location is relative to where you're running the program from.
 FunctionDefinitions:"ModelDefinitions.txt"
 
+#"ERQYData" sets the file name of the file containing ER charge yield data.
+#This location is relative to where you're running the program from.
+ERQYData:"ERChargeYield.csv"
+
 #"NRQYData" sets the file name of the file containing NR charge yield data.
 #This location is relative to where you're running the program from.
 NRQYData:"NRChargeYield.csv"
@@ -51,7 +55,7 @@ ZTitles:"Yield [quanta/keV]"
 XLow:"0"
 
 #"XHigh" specifies the upper bound of the energy range produced by BasicModel::DrawGraphs().
-XHigh:"250"
+XHigh:"500"
 
 #"YLow" specifies the lower bound of the field range produced by BasicModel::DrawGraphs();
 YLow:"0"
@@ -63,7 +67,7 @@ YHigh:"2000"
 ZLow:"0"
 
 #"ZHigh" specifies the upper bound of the yield range produced by BasicModel::DrawGraphs().
-ZHigh:"25"
+ZHigh:"45"
 
 #"LogX" specifies whether or not to set the x-axis to a logarithmic scale.
 LogX:"false"
@@ -105,4 +109,4 @@ PlotExtension:".pdf"
 
 #"DrawPave" specifies whether or not to draw a TPaveText containing the model formula, the
 #parameters, and their errors on the plot drawn by DrawGraphs().
-DrawPave:"true"
+DrawPave:"false"
