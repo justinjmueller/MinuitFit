@@ -51,9 +51,6 @@ NESTModel::BasicModel::BasicModel(std::string modeltype, unsigned int id)
     Is2DFit = FuncObject->GetFunction().find("y") != std::string::npos;
     if(Is2DFit) ModelFunction2D.reset(new TF2("ModelFunction", FuncObject->GetFunction().c_str(), 0, 1000, 0, 5000)); //Create the 2D function that will do the heavy lifting for the function evaluating.
     else ModelFunction1D.reset(new TF1("ModelFunction", FuncObject->GetFunction().c_str(),0,1000));
-    if(Is2DFit) ModelDerivative2D.reset(new TF2("ModelDerivative", FuncObject->GetDerivative().c_str(), 0, 1000, 0, 5000)); //Create the 2D derivative function that will do the heavy lifting for the derivative evaluating.
-    else ModelDerivative1D.reset(new TF1("ModelDerivative", FuncObject->GetDerivative().c_str(), 0, 1000));
-    //for(unsigned int i(0); i < FuncObject->GetParameters().size(); ++i) ModelFunction->SetParameter(i, FuncObject->GetParameters().at(i));
     DataObject DataObj(Settings->Query(std::string(ModelType+"Data"))); //Load data from the data file.
     DataX = DataObj.GetDataX(); //Set energy data.
     DataY = DataObj.GetDataY(); //Set field data.
@@ -85,9 +82,73 @@ double NESTModel::BasicModel::operator()(double* x, double* p)
   return CalculatedValue;
 }
 
-double NESTModel::BasicModel::Derivative(double* x, double* p)
+double NESTModel::BasicModel::DerivativeX(double* x, double* p)
 {
-  return (Is2DFit) ? ModelDerivative2D->EvalPar(x,p) : ModelDerivative1D->EvalPar(x,p); //Evaluate derivative and return.
+  double CalculatedValue(0);
+  if(Is2DFit)
+  {
+    double FPoints1[5];
+    double FPoints2[5];
+    double FStep1;
+    double FStep2;
+    double X0[2] = {x[0],x[1]};
+    double h(0.01);
+    for(int i(-2); i < 3; ++i)
+    {
+      x[0] = X0[0]+i*h;
+      FPoints1[i+2] = ModelFunction2D->EvalPar(x,p);
+      x[0] = X0[0]+2*i*h;
+      FPoints2[i+2] = ModelFunction2D->EvalPar(x,p);
+    }
+    FStep1 = (FPoints1[0] - 8*FPoints1[1] + 8*FPoints1[3] - FPoints1[4])/(12*h);
+    FStep2 = (FPoints2[0] - 8*FPoints2[1] + 8*FPoints2[3] - FPoints2[4])/(12*h);
+    CalculatedValue = (16*FStep1 - FStep2)/(16-1);
+  }
+  else
+  {
+    double FPoints1[5];
+    double FPoints2[5];
+    double FStep1;
+    double FStep2;
+    double X0[1] = {x[0]};
+    double h(0.01);
+    for(int i(-2); i < 3; ++i)
+    {
+      x[0] = X0[0]+i*h;
+      FPoints1[i+2] = ModelFunction1D->EvalPar(x,p);
+      x[0] = X0[0]+2*i*h;
+      FPoints2[i+2] = ModelFunction1D->EvalPar(x,p);
+    }
+    FStep1 = (FPoints1[0] - 8*FPoints1[1] + 8*FPoints1[3] - FPoints1[4])/(12*h);
+    FStep2 = (FPoints2[0] - 8*FPoints2[1] + 8*FPoints2[3] - FPoints2[4])/(12*h);
+    CalculatedValue = (16*FStep1 - FStep2)/(16-1);
+  }
+  return CalculatedValue;
+}
+double NESTModel::BasicModel::DerivativeY(double* x, double* p)
+{
+  double CalculatedValue(0);
+  if(Is2DFit)
+  {
+    double FPoints1[5];
+    double FPoints2[5];
+    double FStep1;
+    double FStep2;
+    double X0[2] = {x[0],x[1]};
+    double h(0.1);
+    for(int i(-2); i < 3; ++i)
+    {
+      x[1] = X0[1]+i*h;
+      FPoints1[i+2] = ModelFunction2D->EvalPar(x,p);
+      x[1] = X0[1]+2*i*h;
+      FPoints2[i+2] = ModelFunction2D->EvalPar(x,p);
+    }
+    FStep1 = (FPoints1[0] - 8*FPoints1[1] + 8*FPoints1[3] - FPoints1[4])/(12*h);
+    FStep2 = (FPoints2[0] - 8*FPoints2[1] + 8*FPoints2[3] - FPoints2[4])/(12*h);
+    CalculatedValue = (16*FStep1 - FStep2)/(16-1);
+  }
+  else CalculatedValue = 0;
+  return CalculatedValue;
 }
 
 bool NESTModel::BasicModel::Minimize()
@@ -152,16 +213,16 @@ void NESTModel::BasicModel::PrintResults()
 void NESTModel::BasicModel::DrawGraphs()
 {
   //Graph properties.
-  std::string Title(Settings->Query("GraphTitles"));
-  std::string XTitle(Settings->Query("XTitles"));
-  std::string ZTitle(Settings->Query("ZTitles"));
+  std::string Title(Settings->Query(std::string(ModelType+"GraphTitles")));
+  std::string XTitle(Settings->Query(std::string(ModelType+"XTitles")));
+  std::string ZTitle(Settings->Query(std::string(ModelType+"ZTitles")));
   std::string ROOTName(Settings->Query("ROOTName"));
   std::string PlotScheme(Settings->Query("PlotScheme"));
   std::string PlotExtension(Settings->Query("PlotExtension"));
-  double XLow(std::stod(Settings->Query("XLow")));
-  double XHigh(std::stod(Settings->Query("XHigh")));
-  double ZLow(std::stod(Settings->Query("ZLow")));
-  double ZHigh(std::stod(Settings->Query("ZHigh")));
+  double XLow(std::stod(Settings->Query(std::string(ModelType+"XLow"))));
+  double XHigh(std::stod(Settings->Query(std::string(ModelType+"XHigh"))));
+  double ZLow(std::stod(Settings->Query(std::string(ModelType+"ZLow"))));
+  double ZHigh(std::stod(Settings->Query(std::string(ModelType+"ZHigh"))));
   bool LogX(Settings->Query("LogX") == "true" ? true : false);
   bool LogY(Settings->Query("LogY") == "true" ? true : false);
   bool OutputToFile(Settings->Query("OutputToFile") == "true" ? true : false);

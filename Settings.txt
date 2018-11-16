@@ -43,34 +43,61 @@ Verbosity:"-1"
 Algorithm:"MIGRAD"
 
 #"GraphTitles" specifies the title of the graphs produced by BasicModel::DrawGraphs();
-GraphTitles:"Total Yield at Various Fields"
+NRQYGraphTitles:"NR Charge Yield at Various Fields"
+NRLYGraphTitles:"NR Light Yield at Various Fields"
+NRTYGraphTitles:"NR Total Yield at Various Fields"
+ERQYGraphTitles:"ER Charge Yield at Various Fields"
 
 #"XTitles" specifies the x-axis title of the graphs produced by BasicModel::DrawGraphs();
-XTitles:"Energy [keV]"
+NRQYXTitles:"Energy [keV]"
+NRLYXTitles:"Energy [keV]"
+NRTYXTitles:"Energy [keV]"
+ERQYXTitles:"Energy [keV]"
 
 #"ZTitles" specifies the z-axis title of the graphs produced by BasicModel::DrawGraphs();
-ZTitles:"Yield [quanta/keV]"
+NRQYZTitles:"Yield [electrons/keV]"
+NRLYZTitles:"Yield [photons/keV]"
+NRTYZTitles:"Yield [quanta/keV]"
+ERQYZTitles:"Yield [electrons/keV]"
 
 #"XLow" specifies the lower bound of the energy range produced by BasicModel::DrawGraphs().
-XLow:"0"
+NRQYXLow:"0"
+NRLYXLow:"0"
+NRTYXLow:"0"
+ERQYXLow:"0"
 
 #"XHigh" specifies the upper bound of the energy range produced by BasicModel::DrawGraphs().
-XHigh:"500"
+NRQYXHigh:"150"
+NRLYXHigh:"150"
+NRTYXHigh:"150"
+ERQYXHigh:"500"
 
 #"YLow" specifies the lower bound of the field range produced by BasicModel::DrawGraphs();
-YLow:"0"
+NRQYYLow:"0"
+NRLYYLow:"0"
+NRTYYLow:"0"
+ERQYYLow:"0"
 
 #"YHigh" specifies the upper bound of the field range produced by BasicModel::DrawGraphs();
-YHigh:"2000"
+NRQYYHigh:"2000"
+NRLYYHigh:"2000"
+NRTYYHigh:"2000"
+ERQYYHigh:"2500"
 
 #"ZLow" specifies the lower bound of the yield range produced by BasicModel::DrawGraphs().
-ZLow:"0"
+NRQYZLow:"0"
+NRLYZLow:"0"
+NRTYZLow:"0"
+ERQYZLow:"0"
 
 #"ZHigh" specifies the upper bound of the yield range produced by BasicModel::DrawGraphs().
-ZHigh:"45"
+NRQYZHigh:"10"
+NRLYZHigh:"15"
+NRTYZHigh:"25"
+ERQYZHigh:"50"
 
 #"LogX" specifies whether or not to set the x-axis to a logarithmic scale.
-LogX:"false"
+LogX:"true"
 
 #"LogY" specifies whether or not to set the y-axis to a logarithmic scale.
 LogY:"false"

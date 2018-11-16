@@ -14,7 +14,7 @@
 FunctionObject::FunctionObject(std::string Definitions, std::string SearchString, unsigned int ModelID, bool& Success)
 {
   std::ifstream Input(Definitions);
-  std::string Line, FunctionString, DerivativeString, ParameterString, LimitLowString, LimitHighString, StepSizesString, Tmp, ModelIDString;
+  std::string Line, FunctionString, ParameterString, LimitLowString, LimitHighString, StepSizesString, Tmp, ModelIDString;
   std::size_t First, Last;
   bool Found(false);
 
@@ -30,13 +30,6 @@ FunctionObject::FunctionObject(std::string Definitions, std::string SearchString
 	  Last = Line.find("\"",First+1);
 	  FunctionString = Line.substr(First+1,Last-First-1);
 	  DefinitionsMap.emplace(SearchString+std::string("F")+std::to_string(ModelID), FunctionString);
-	}
-	else if(Line.find(SearchString+std::string("D")+std::to_string(ModelID)) !=std::string::npos)
-	{
-	  First = Line.find("\"");
-	  Last = Line.find("\"",First+1);
-	  DerivativeString = Line.substr(First+1,Last-First-1);
-	  DefinitionsMap.emplace(SearchString+std::string("D")+std::to_string(ModelID), DerivativeString);
 	}
 	else if(Line.find(SearchString+std::string("P")+std::to_string(ModelID)) !=std::string::npos)
 	{
@@ -66,7 +59,7 @@ FunctionObject::FunctionObject(std::string Definitions, std::string SearchString
 	  StepSizesString = Line.substr(First+1,Last-First-1);
 	  DefinitionsMap.emplace(SearchString+std::string("S")+std::to_string(ModelID), StepSizesString);
 	}
-	Found = (FunctionString != "" && DerivativeString != "" && ParameterString != "" && LimitLowString != "", LimitHighString != "" && StepSizesString != "");	
+	Found = (FunctionString != "" && ParameterString != "" && LimitLowString != "", LimitHighString != "" && StepSizesString != "");	
       }
     }
   }
@@ -77,7 +70,6 @@ FunctionObject::FunctionObject(std::string Definitions, std::string SearchString
   if(Found)
   {
     Function = FunctionString;
-    Derivative = DerivativeString;
     for(unsigned int i(0); i < ParameterString.length(); ++i)
     {
       if(ParameterString[i] != ',') Tmp += ParameterString[i];
@@ -128,11 +120,6 @@ FunctionObject::FunctionObject(std::string Definitions, std::string SearchString
 std::string FunctionObject::GetFunction()
 {
   return Function;
-}
-
-std::string FunctionObject::GetDerivative()
-{
-  return Derivative;
 }
 
 std::vector<double> FunctionObject::GetParameters()

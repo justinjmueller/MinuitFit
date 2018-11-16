@@ -23,7 +23,8 @@ namespace NESTModel
   public:
     BasicModel(std::string modeltype, unsigned int id = 0);
     double operator()(double* x, double* p);
-    double Derivative(double* x, double* p);
+    double DerivativeX(double* x, double* p);
+    double DerivativeY(double* x, double* p);
     bool Minimize();
     void PrintResults();
     void DrawGraphs();
@@ -57,9 +58,7 @@ namespace NESTModel
     std::shared_ptr<SettingsObject> Settings;
     std::shared_ptr<FunctionObject> FuncObject;
     std::shared_ptr<TF2> ModelFunction2D;
-    std::shared_ptr<TF2> ModelDerivative2D;
     std::shared_ptr<TF1> ModelFunction1D;
-    std::shared_ptr<TF1> ModelDerivative1D;
     std::string ModelType;
     std::vector<double> DataX;
     std::vector<double> DataXErrLow;
@@ -90,8 +89,8 @@ namespace NESTModel
       xData[0] = GlobalModel->GetDataX().at(datum);
       xData[1] = GlobalModel->GetDataY().at(datum);
       Difference = GlobalModel->GetDataZ().at(datum) - (*GlobalModel)(xData, par);
-      if(Difference < 0) WRSS += (TMath::Power(Difference, 2.0)) / ( TMath::Power(GlobalModel->GetDataZErrHigh().at(datum),2.0) + TMath::Power( (0.5*(GlobalModel->GetDataXErrLow().at(datum) + GlobalModel->GetDataXErrHigh().at(datum))*(GlobalModel->Derivative(xData, par)) ), 2.0) );
-      else WRSS += (TMath::Power(Difference, 2.0)) / ( TMath::Power(GlobalModel->GetDataZErrLow().at(datum),2.0) + TMath::Power( (0.5*(GlobalModel->GetDataXErrLow().at(datum) + GlobalModel->GetDataXErrHigh().at(datum))*(GlobalModel->Derivative(xData, par)) ), 2.0) );
+      if(Difference < 0) WRSS += (TMath::Power(Difference, 2.0)) / ( TMath::Power(GlobalModel->GetDataZErrHigh().at(datum),2.0) + TMath::Power( (0.5*(GlobalModel->GetDataXErrLow().at(datum) + GlobalModel->GetDataXErrHigh().at(datum))*(GlobalModel->DerivativeX(xData, par)) ), 2.0) );
+      else WRSS += (TMath::Power(Difference, 2.0)) / ( TMath::Power(GlobalModel->GetDataZErrLow().at(datum),2.0) + TMath::Power( (0.5*(GlobalModel->GetDataXErrLow().at(datum) + GlobalModel->GetDataXErrHigh().at(datum))*(GlobalModel->DerivativeX(xData, par)) ), 2.0) );
     }
     result = WRSS;
   }
