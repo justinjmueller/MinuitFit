@@ -8,7 +8,7 @@
 class DataObject
 {
  public:
-  DataObject(std::string FileName);
+  DataObject(std::string FileName, double DefaultYieldUncertainty, double DefaultEnergyUncertainty, double DefaultFieldUncertainty);
   std::vector<double> GetDataX();
   std::vector<double> GetDataXErrLow();
   std::vector<double> GetDataXErrHigh();

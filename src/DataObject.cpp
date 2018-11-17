@@ -7,7 +7,7 @@
 //Custom includes.
 #include "DataObject.h" //Header file for this implementation.
 
-DataObject::DataObject(std::string FileName)
+DataObject::DataObject(std::string FileName, double DefaultYieldUncertainty, double DefaultEnergyUncertainty, double DefaultFieldUncertainty)
 {
   std::ifstream Input(FileName);
   std::size_t prev, pos;
@@ -34,12 +34,12 @@ DataObject::DataObject(std::string FileName)
       if(i + 6 < DataList.size())
       {
 	DataX.push_back(DataList.at(i+0));
-	DataXErrLow.push_back(DataList.at(i+1));
-	DataXErrHigh.push_back(DataList.at(i+2));
+	DataXErrLow.push_back(DataList.at(i+1) == 0 ? DataList.at(i+0)*DefaultEnergyUncertainty : DataList.at(i+1));
+	DataXErrHigh.push_back(DataList.at(i+2) == 0 ? DataList.at(i+0)*DefaultEnergyUncertainty : DataList.at(i+2));
 	DataY.push_back(DataList.at(i+3));
 	DataZ.push_back(DataList.at(i+4));
-	DataZErrLow.push_back(DataList.at(i+5));
-	DataZErrHigh.push_back(DataList.at(i+6));
+	DataZErrLow.push_back(DataList.at(i+5) == 0 ? DataList.at(i+4)*DefaultYieldUncertainty : DataList.at(i+5));
+	DataZErrHigh.push_back(DataList.at(i+6) == 0 ? DataList.at(i+4)*DefaultYieldUncertainty : DataList.at(i+6));
       }
       else std::cerr << "Data file configured incorrectly. Check for a missing entry in a column." << std::endl;
     }

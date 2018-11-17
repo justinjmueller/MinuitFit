@@ -51,7 +51,13 @@ NESTModel::BasicModel::BasicModel(std::string modeltype, unsigned int id)
     Is2DFit = FuncObject->GetFunction().find("y") != std::string::npos;
     if(Is2DFit) ModelFunction2D.reset(new TF2("ModelFunction", FuncObject->GetFunction().c_str(), 0, 1000, 0, 5000)); //Create the 2D function that will do the heavy lifting for the function evaluating.
     else ModelFunction1D.reset(new TF1("ModelFunction", FuncObject->GetFunction().c_str(),0,1000));
-    DataObject DataObj(Settings->Query(std::string(ModelType+"Data"))); //Load data from the data file.
+    DataObject DataObj(Settings->Query(std::string(ModelType+"Data")), std::stod(Settings->Query("DefaultYieldUncertainty")), std::stod(Settings->Query("DefaultEnergyUncertainty")), std::stod(Settings->Query("DefaultEnergyUncertainty"))); //Load data from the data file.
+
+    double xtest[2] = {364,71};
+    double ptest[6] = {0.6, 0.6407, 621.74, 752.988, 0.026115, 1.784};
+    std::cerr << "Function: " << (*this)(xtest,ptest) << std::endl;
+    std::cerr << "Derivative: " << DerivativeX(xtest,ptest) << std::endl;
+    
     DataX = DataObj.GetDataX(); //Set energy data.
     DataY = DataObj.GetDataY(); //Set field data.
     DataZ = DataObj.GetDataZ(); //Set yield data.
@@ -219,6 +225,7 @@ void NESTModel::BasicModel::DrawGraphs()
   std::string ROOTName(Settings->Query("ROOTName"));
   std::string PlotScheme(Settings->Query("PlotScheme"));
   std::string PlotExtension(Settings->Query("PlotExtension"));
+  double FieldBinSize(std::stod(Settings->Query("FieldBinSize")));
   double XLow(std::stod(Settings->Query(std::string(ModelType+"XLow"))));
   double XHigh(std::stod(Settings->Query(std::string(ModelType+"XHigh"))));
   double ZLow(std::stod(Settings->Query(std::string(ModelType+"ZLow"))));
@@ -243,15 +250,14 @@ void NESTModel::BasicModel::DrawGraphs()
     for(unsigned int i(0); i < (unsigned int)TColor::GetNumberOfColors(); ++i) Colors.push_back(TColor::GetColorPalette(i));
     
     //Separate data by field.
-    std::map<double, std::vector< std::vector<double> > > Map;
+    std::map<int, std::vector< std::vector<double> > > Map;
     std::vector< std::vector<double> > TempOuterVector;
     std::vector<double> TempInnerVector = {-1};
     double YLow(0), YHigh(0);
     for(unsigned int i(0); i < DataY.size(); ++i)
     {
       if(DataY.at(i) > YHigh) YHigh = DataY.at(i);
-      //if(DataY.at(i) < YLow) YLow = DataY.at(i);
-      if(Map.count(DataY.at(i)) == 0) //Not a previously entered field value.
+      if(Map.count(int(DataY.at(i)/FieldBinSize)) == 0) //Not a previously filled field bin.
       {
 	//Create the first entry for this field value with it's corresponding points.
 	TempInnerVector.at(0) = DataX.at(i);
@@ -266,18 +272,18 @@ void NESTModel::BasicModel::DrawGraphs()
 	TempOuterVector.push_back(TempInnerVector);
 	TempInnerVector.at(0) = DataZErrHigh.at(i);
 	TempOuterVector.push_back(TempInnerVector);
-	Map.emplace(DataY.at(i), TempOuterVector);
+	Map.emplace(int(DataY.at(i)/FieldBinSize), TempOuterVector);
 	TempOuterVector.clear();
       }
       else //The field has been previously entered.
       {
 	//Add a new set of points to this field value.
-	Map.find(DataY.at(i))->second.at(0).push_back(DataX.at(i));
-	Map.find(DataY.at(i))->second.at(1).push_back(DataXErrLow.at(i));
-	Map.find(DataY.at(i))->second.at(2).push_back(DataXErrHigh.at(i));
-	Map.find(DataY.at(i))->second.at(3).push_back(DataZ.at(i));
-	Map.find(DataY.at(i))->second.at(4).push_back(DataZErrLow.at(i));
-	Map.find(DataY.at(i))->second.at(5).push_back(DataZErrHigh.at(i));
+	Map.find(int(DataY.at(i)/FieldBinSize))->second.at(0).push_back(DataX.at(i));
+	Map.find(int(DataY.at(i)/FieldBinSize))->second.at(1).push_back(DataXErrLow.at(i));
+	Map.find(int(DataY.at(i)/FieldBinSize))->second.at(2).push_back(DataXErrHigh.at(i));
+	Map.find(int(DataY.at(i)/FieldBinSize))->second.at(3).push_back(DataZ.at(i));
+	Map.find(int(DataY.at(i)/FieldBinSize))->second.at(4).push_back(DataZErrLow.at(i));
+	Map.find(int(DataY.at(i)/FieldBinSize))->second.at(5).push_back(DataZErrHigh.at(i));
       }
     }
     const unsigned int MapSize(Map.size()); //Need to create this many separate graphs.
@@ -290,7 +296,7 @@ void NESTModel::BasicModel::DrawGraphs()
     unsigned int ColorList[MapSize]; //Stores the color of each function.
     TMultiGraph* MultiGraph = new TMultiGraph(); //Create the multigraph object.
     MultiGraph->SetTitle(std::string(Title+";"+XTitle+";"+ZTitle).c_str());
-    for(std::map<double, std::vector< std::vector<double> > >::iterator MapIterator = Map.begin(); MapIterator != Map.end(); ++MapIterator, ++FieldIndex)
+    for(std::map<int, std::vector< std::vector<double> > >::iterator MapIterator = Map.begin(); MapIterator != Map.end(); ++MapIterator, ++FieldIndex)
     {
       //Copy the data into arrays for use in the TGraphAsymmErrors construction.
       std::copy(MapIterator->second.at(0).begin(), MapIterator->second.at(0).end(), DataXArr);
@@ -300,12 +306,12 @@ void NESTModel::BasicModel::DrawGraphs()
       std::copy(MapIterator->second.at(4).begin(), MapIterator->second.at(4).end(), DataZErrLowArr);
       std::copy(MapIterator->second.at(5).begin(), MapIterator->second.at(5).end(), DataZErrHighArr);
       GraphArray[FieldIndex] = new TGraphAsymmErrors(MapIterator->second.at(0).size(), DataXArr, DataZArr, DataXErrLowArr, DataXErrHighArr, DataZErrLowArr, DataZErrHighArr); //Create the graph object for this field.
-      DefaultField = MapIterator->first; //Set the field so that operator() understands what field to use.
+      DefaultField = (MapIterator->first)*FieldBinSize + 0.5*FieldBinSize; //Set the field so that operator() understands what field to use.
       FunctionArray[FieldIndex] = new TF1("f", *this, XLow, XHigh, NPar); //Create the function object.
       std::copy(Parameters.begin(), Parameters.end(), ParameterArr); //Copy the best fit parameters.
       FunctionArray[FieldIndex]->SetParameters(ParameterArr); //Set the parameters in the function.w
       DefaultField = -1; //Reset after creating the functions.
-      ColorList[FieldIndex] = Colors.at(int((MapIterator->first - YLow)/((YHigh - YLow)/(Colors.size()-1)))); //Calculate the color associated with this field value by breaking the field range into bins.
+      ColorList[FieldIndex] = Colors.at(int(((MapIterator->first)*FieldBinSize + 0.5*FieldBinSize - YLow)/((YHigh - YLow)/(Colors.size()-1)))); //Calculate the color associated with this field value by breaking the field range into bins.
       //Set graph and function draw options.
       GraphArray[FieldIndex]->SetMarkerColor(ColorList[FieldIndex]);
       GraphArray[FieldIndex]->SetLineColor(ColorList[FieldIndex]);
