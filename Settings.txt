@@ -104,7 +104,13 @@ LogY:"false"
 
 #"Palette" specifies the color palette. See the TColor class reference page for a list.
 #For example, kVisibleSpectrum is index 107.
-Palette:"107"
+PaletteV6.04:"107"
+Palette:"55"
+
+#"ROOTV6.04" specifies whether to use "PaletteV6.04" or "Palette". This switch is here
+#because ROOT v6.04+ introduce more predefined paletes. If the user is using ROOT v6.04
+#or higher, then set "ROOTV6.04" to true.
+ROOTV6.04:"true"
 
 #"MarkerStyle" specifies the style of the marker. See TAttMarker class reference for a list.
 MarkerStyle:"21"

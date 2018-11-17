@@ -223,11 +223,13 @@ void NESTModel::BasicModel::DrawGraphs()
   double XHigh(std::stod(Settings->Query(std::string(ModelType+"XHigh"))));
   double ZLow(std::stod(Settings->Query(std::string(ModelType+"ZLow"))));
   double ZHigh(std::stod(Settings->Query(std::string(ModelType+"ZHigh"))));
+  bool ROOTV604(Settings->Query("ROOTV6.04") == "true" ? true : false);
   bool LogX(Settings->Query("LogX") == "true" ? true : false);
   bool LogY(Settings->Query("LogY") == "true" ? true : false);
   bool OutputToFile(Settings->Query("OutputToFile") == "true" ? true : false);
   bool DrawPave(Settings->Query("DrawPave") == "true" ? true : false);
-  unsigned int PaletteEnum(stoi(Settings->Query("Palette")));
+  unsigned int PaletteEnumOld(stoi(Settings->Query("Palette")));
+  unsigned int PaletteEnumNew(stoi(Settings->Query("PaletteV6.04")));
   unsigned int MarkerStyle(stoi(Settings->Query("MarkerStyle")));
   unsigned int MarkerSize(stoi(Settings->Query("MarkerSize")));
   unsigned int LineStyle(stoi(Settings->Query("LineStyle")));
@@ -235,7 +237,8 @@ void NESTModel::BasicModel::DrawGraphs()
 
   if(Is2DFit)
   {
-    TColor::SetPalette(PaletteEnum,0);
+    if(ROOTV604) TColor::SetPalette(PaletteEnumNew,0);
+    else TColor::SetPalette(PaletteEnumOld, 0);
     std::vector<int> Colors;
     for(unsigned int i(0); i < (unsigned int)TColor::GetNumberOfColors(); ++i) Colors.push_back(TColor::GetColorPalette(i));
     
