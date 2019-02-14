@@ -345,6 +345,7 @@ void NESTModel::BasicModel::DrawGraphs()
     HistDummy->Fill(5,5,YHigh);
     HistDummy->SetContour(Colors.size());
     HistDummy->GetZaxis()->SetTitle("Field [V/cm]");
+    HistDummy->GetZaxis()->SetTitleOffset(1.2);
     HistDummy->GetZaxis()->CenterTitle();
     HistDummy->Draw("COLZ");
     gPad->Update();
