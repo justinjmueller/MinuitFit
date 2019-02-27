@@ -8,11 +8,13 @@
 class DataObject
 {
  public:
-  DataObject(std::string FileName, double DefaultYieldUncertainty, double DefaultEnergyUncertainty, double DefaultFieldUncertainty);
+  DataObject(std::string FileName, double DefaultYieldUncertainty, double DefaultEnergyUncertainty, double DefaultFieldUncertainty, double LowField);
   std::vector<double> GetDataX();
   std::vector<double> GetDataXErrLow();
   std::vector<double> GetDataXErrHigh();
   std::vector<double> GetDataY();
+  std::vector<double> GetDataYErrLow();
+  std::vector<double> GetDataYErrHigh();
   std::vector<double> GetDataZ();
   std::vector<double> GetDataZErrLow();
   std::vector<double> GetDataZErrHigh();
@@ -23,6 +25,8 @@ class DataObject
   std::vector<double> DataXErrLow;
   std::vector<double> DataXErrHigh;
   std::vector<double> DataY;
+  std::vector<double> DataYErrLow;
+  std::vector<double> DataYErrHigh;
   std::vector<double> DataZ;
   std::vector<double> DataZErrLow;
   std::vector<double> DataZErrHigh;

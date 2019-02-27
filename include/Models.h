@@ -35,6 +35,8 @@ namespace NESTModel
     std::vector<double>& GetDataXErrLow();
     std::vector<double>& GetDataXErrHigh();
     std::vector<double>& GetDataY();
+    std::vector<double>& GetDataYErrLow();
+    std::vector<double>& GetDataYErrHigh();
     std::vector<double>& GetDataZ();
     std::vector<double>& GetDataZErrLow();
     std::vector<double>& GetDataZErrHigh();
@@ -64,6 +66,8 @@ namespace NESTModel
     std::vector<double> DataXErrLow;
     std::vector<double> DataXErrHigh;
     std::vector<double> DataY;
+    std::vector<double> DataYErrLow;
+    std::vector<double> DataYErrHigh;
     std::vector<double> DataZ;
     std::vector<double> DataZErrLow;
     std::vector<double> DataZErrHigh;
@@ -89,8 +93,8 @@ namespace NESTModel
       xData[0] = GlobalModel->GetDataX().at(datum);
       xData[1] = GlobalModel->GetDataY().at(datum);
       Difference = GlobalModel->GetDataZ().at(datum) - (*GlobalModel)(xData, par);
-      if(Difference < 0) WRSS += (TMath::Power(Difference, 2.0)) / ( TMath::Power(GlobalModel->GetDataZErrHigh().at(datum),2.0) + TMath::Power( (0.5*(GlobalModel->GetDataXErrLow().at(datum) + GlobalModel->GetDataXErrHigh().at(datum))*(GlobalModel->DerivativeX(xData, par)) ), 2.0) );
-      else WRSS += (TMath::Power(Difference, 2.0)) / ( TMath::Power(GlobalModel->GetDataZErrLow().at(datum),2.0) + TMath::Power( (0.5*(GlobalModel->GetDataXErrLow().at(datum) + GlobalModel->GetDataXErrHigh().at(datum))*(GlobalModel->DerivativeX(xData, par)) ), 2.0) );
+      if(Difference < 0) WRSS += (TMath::Power(Difference, 2.0)) / ( TMath::Power(GlobalModel->GetDataZErrHigh().at(datum),2.0) + TMath::Power( (0.5*(GlobalModel->GetDataXErrLow().at(datum) + GlobalModel->GetDataXErrHigh().at(datum))*(GlobalModel->DerivativeX(xData, par)) ), 2.0) + TMath::Power( (0.5*(GlobalModel->GetDataYErrLow().at(datum) + GlobalModel->GetDataYErrHigh().at(datum))*(GlobalModel->DerivativeY(xData, par)) ), 2.0) );
+      else WRSS += (TMath::Power(Difference, 2.0)) / ( TMath::Power(GlobalModel->GetDataZErrLow().at(datum),2.0) + TMath::Power( (0.5*(GlobalModel->GetDataXErrLow().at(datum) + GlobalModel->GetDataXErrHigh().at(datum))*(GlobalModel->DerivativeX(xData, par)) ), 2.0) + TMath::Power( (0.5*(GlobalModel->GetDataYErrLow().at(datum) + GlobalModel->GetDataYErrHigh().at(datum))*(GlobalModel->DerivativeY(xData, par)) ), 2.0));
     }
     result = WRSS;
   }

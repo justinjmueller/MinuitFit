@@ -51,18 +51,14 @@ NESTModel::BasicModel::BasicModel(std::string modeltype, unsigned int id)
     Is2DFit = FuncObject->GetFunction().find("y") != std::string::npos;
     if(Is2DFit) ModelFunction2D.reset(new TF2("ModelFunction", FuncObject->GetFunction().c_str(), 0, 1000, 0, 5000)); //Create the 2D function that will do the heavy lifting for the function evaluating.
     else ModelFunction1D.reset(new TF1("ModelFunction", FuncObject->GetFunction().c_str(),0,1000));
-    DataObject DataObj(Settings->Query(std::string(ModelType+"Data")), std::stod(Settings->Query("DefaultYieldUncertainty")), std::stod(Settings->Query("DefaultEnergyUncertainty")), std::stod(Settings->Query("DefaultEnergyUncertainty"))); //Load data from the data file.
-
-    double xtest[2] = {364,71};
-    double ptest[6] = {0.6, 0.6407, 621.74, 752.988, 0.026115, 1.784};
-    std::cerr << "Function: " << (*this)(xtest,ptest) << std::endl;
-    std::cerr << "Derivative: " << DerivativeX(xtest,ptest) << std::endl;
-    
+    DataObject DataObj(Settings->Query(std::string(ModelType+"Data")), std::stod(Settings->Query("DefaultYieldUncertainty")), std::stod(Settings->Query("DefaultEnergyUncertainty")), std::stod(Settings->Query("DefaultEnergyUncertainty")), std::stod(Settings->Query("LowField"))); //Load data from the data file.    
     DataX = DataObj.GetDataX(); //Set energy data.
     DataY = DataObj.GetDataY(); //Set field data.
     DataZ = DataObj.GetDataZ(); //Set yield data.
     DataXErrLow = DataObj.GetDataXErrLow(); //Set lower energy error bar.
     DataXErrHigh = DataObj.GetDataXErrHigh(); //Set upper energy error bar.
+    DataYErrLow = DataObj.GetDataYErrLow(); //Set lower field error bar.
+    DataYErrHigh = DataObj.GetDataYErrHigh(); //Set upper field error bar.
     DataZErrLow = DataObj.GetDataZErrLow(); //Set lower yield error bar.
     DataZErrHigh = DataObj.GetDataZErrHigh(); //Set upper yield error bar.
     NData = DataX.size(); //Set NData properly.
@@ -218,6 +214,7 @@ void NESTModel::BasicModel::PrintResults()
 
 void NESTModel::BasicModel::DrawGraphs()
 {
+  unsigned int CheckInt(0);
   //Graph properties.
   std::string Title(Settings->Query(std::string(ModelType+"GraphTitles")));
   std::string XTitle(Settings->Query(std::string(ModelType+"XTitles")));
@@ -248,7 +245,6 @@ void NESTModel::BasicModel::DrawGraphs()
     else TColor::SetPalette(PaletteEnumOld, 0);
     std::vector<int> Colors;
     for(unsigned int i(0); i < (unsigned int)TColor::GetNumberOfColors(); ++i) Colors.push_back(TColor::GetColorPalette(i));
-    
     //Separate data by field.
     std::map<int, std::vector< std::vector<double> > > Map;
     std::vector< std::vector<double> > TempOuterVector;
@@ -309,7 +305,7 @@ void NESTModel::BasicModel::DrawGraphs()
       DefaultField = (MapIterator->first)*FieldBinSize + 0.5*FieldBinSize; //Set the field so that operator() understands what field to use.
       FunctionArray[FieldIndex] = new TF1("f", *this, XLow, XHigh, NPar); //Create the function object.
       std::copy(Parameters.begin(), Parameters.end(), ParameterArr); //Copy the best fit parameters.
-      FunctionArray[FieldIndex]->SetParameters(ParameterArr); //Set the parameters in the function.w
+      FunctionArray[FieldIndex]->SetParameters(ParameterArr); //Set the parameters in the function.
       DefaultField = -1; //Reset after creating the functions.
       ColorList[FieldIndex] = Colors.at(int(((MapIterator->first)*FieldBinSize + 0.5*FieldBinSize - YLow)/((YHigh - YLow)/(Colors.size()-1)))); //Calculate the color associated with this field value by breaking the field range into bins.
       //Set graph and function draw options.
@@ -469,6 +465,16 @@ std::vector<double>& NESTModel::BasicModel::GetDataXErrHigh()
 std::vector<double>& NESTModel::BasicModel::GetDataY()
 {
   return DataY;
+}
+
+std::vector<double>& NESTModel::BasicModel::GetDataYErrLow()
+{
+  return DataYErrLow;
+}
+
+std::vector<double>& NESTModel::BasicModel::GetDataYErrHigh()
+{
+  return DataYErrHigh;
 }
 
 std::vector<double>& NESTModel::BasicModel::GetDataZ()
