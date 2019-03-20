@@ -87,14 +87,30 @@ namespace NESTModel
   {
     double WRSS(0);
     double Difference(0);
+    double Error(0);
     double xData[2];
     for(unsigned int datum(0); datum < GlobalModel->GetDataX().size(); ++datum)
     {
       xData[0] = GlobalModel->GetDataX().at(datum);
       xData[1] = GlobalModel->GetDataY().at(datum);
       Difference = GlobalModel->GetDataZ().at(datum) - (*GlobalModel)(xData, par);
-      if(Difference < 0) WRSS += (TMath::Power(Difference, 2.0)) / ( TMath::Power(GlobalModel->GetDataZErrHigh().at(datum),2.0) + TMath::Power( (0.5*(GlobalModel->GetDataXErrLow().at(datum) + GlobalModel->GetDataXErrHigh().at(datum))*(GlobalModel->DerivativeX(xData, par)) ), 2.0) + TMath::Power( (0.5*(GlobalModel->GetDataYErrLow().at(datum) + GlobalModel->GetDataYErrHigh().at(datum))*(GlobalModel->DerivativeY(xData, par)) ), 2.0) );
-      else WRSS += (TMath::Power(Difference, 2.0)) / ( TMath::Power(GlobalModel->GetDataZErrLow().at(datum),2.0) + TMath::Power( (0.5*(GlobalModel->GetDataXErrLow().at(datum) + GlobalModel->GetDataXErrHigh().at(datum))*(GlobalModel->DerivativeX(xData, par)) ), 2.0) + TMath::Power( (0.5*(GlobalModel->GetDataYErrLow().at(datum) + GlobalModel->GetDataYErrHigh().at(datum))*(GlobalModel->DerivativeY(xData, par)) ), 2.0));
+
+      if(Difference < 0) Error += TMath::Power(GlobalModel->GetDataZErrHigh().at(datum), 2.0); //Add the higher error in the measurement if we estimated high.
+      else Error += TMath::Power(GlobalModel->GetDataZErrLow().at(datum), 2.0); //Add the lower error in the measurment if we estimated low.
+      //Error += TMath::Power( (0.5*(GlobalModel->GetDataXErrLow().at(datum) + GlobalModel->GetDataXErrHigh().at(datum)))*(GlobalModel->DerivativeX(xData,par)), 2.0); //Add the error in the x independent variable.
+      //Error += TMath::Power( (0.5*(GlobalModel->GetDataYErrLow().at(datum) + GlobalModel->GetDataYErrHigh().at(datum)))*(GlobalModel->DerivativeY(xData,par)), 2.0); //Add the error in the y independent variable.
+      WRSS += TMath::Power(Difference, 2.0) / Error;
+      /*std::cout << "********************************************************" << std::endl;
+      std::cout << "Function: " << (*GlobalModel)(xData,par) << std::endl;
+      std::cout << "Parameters: " << par[0] << ", " << par[1] << ", " << par[2] << ", " << par[3] << std::endl;
+      std::cout << "Error at : " << GlobalModel->GetDataX().at(datum) << "keV, " << xData[1] << "V/cm: " << WRSS << std::endl;
+      std::cout << "DerivativeX at : " << GlobalModel->GetDataX().at(datum) << "keV, " << xData[1] << "V/cm: " << GlobalModel->DerivativeX(xData,par) << std::endl;
+      std::cout << "DerivativeY at : " << GlobalModel->GetDataX().at(datum) << "keV, " << xData[1] << "V/cm: " << GlobalModel->DerivativeY(xData,par) << std::endl;
+      std::cout << "********************************************************" << std::endl;*/
+      Error = 0;
+      
+      /*if(Difference < 0) WRSS += (TMath::Power(Difference, 2.0)) / ( TMath::Power(GlobalModel->GetDataZErrHigh().at(datum),2.0) + TMath::Power( (0.5*(GlobalModel->GetDataXErrLow().at(datum) + GlobalModel->GetDataXErrHigh().at(datum))*(GlobalModel->DerivativeX(xData, par)) ), 2.0) + TMath::Power( (0.5*(GlobalModel->GetDataYErrLow().at(datum) + GlobalModel->GetDataYErrHigh().at(datum))*(GlobalModel->DerivativeY(xData, par)) ), 2.0) );
+	else WRSS += (TMath::Power(Difference, 2.0)) / ( TMath::Power(GlobalModel->GetDataZErrLow().at(datum),2.0) + TMath::Power( (0.5*(GlobalModel->GetDataXErrLow().at(datum) + GlobalModel->GetDataXErrHigh().at(datum))*(GlobalModel->DerivativeX(xData, par)) ), 2.0) + TMath::Power( (0.5*(GlobalModel->GetDataYErrLow().at(datum) + GlobalModel->GetDataYErrHigh().at(datum))*(GlobalModel->DerivativeY(xData, par)) ), 2.0));*/
     }
     result = WRSS;
   }

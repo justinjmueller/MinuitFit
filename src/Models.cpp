@@ -1,5 +1,6 @@
 //C++ includes
 #include <iostream> //Basic input and output.
+#include <fstream> //Basic file input and output.
 #include <memory> //For using shared_ptr.
 #include <vector> //STL vector.
 #include <set> //STL set.
@@ -51,7 +52,7 @@ NESTModel::BasicModel::BasicModel(std::string modeltype, unsigned int id)
     Is2DFit = FuncObject->GetFunction().find("y") != std::string::npos;
     if(Is2DFit) ModelFunction2D.reset(new TF2("ModelFunction", FuncObject->GetFunction().c_str(), 0, 1000, 0, 5000)); //Create the 2D function that will do the heavy lifting for the function evaluating.
     else ModelFunction1D.reset(new TF1("ModelFunction", FuncObject->GetFunction().c_str(),0,1000));
-    DataObject DataObj(Settings->Query(std::string(ModelType+"Data")), std::stod(Settings->Query("DefaultYieldUncertainty")), std::stod(Settings->Query("DefaultEnergyUncertainty")), std::stod(Settings->Query("DefaultEnergyUncertainty")), std::stod(Settings->Query("LowField"))); //Load data from the data file.    
+    DataObject DataObj(Settings->Query(std::string(ModelType+"Data")), std::stod(Settings->Query("DefaultYieldUncertainty")), std::stod(Settings->Query("DefaultEnergyUncertainty")), std::stod(Settings->Query("DefaultEnergyUncertainty")), std::stod(Settings->Query("LowField"))); //Load data from the data file.
     DataX = DataObj.GetDataX(); //Set energy data.
     DataY = DataObj.GetDataY(); //Set field data.
     DataZ = DataObj.GetDataZ(); //Set yield data.
@@ -91,41 +92,36 @@ double NESTModel::BasicModel::DerivativeX(double* x, double* p)
   {
     double FPoints1[5];
     double FPoints2[5];
-    double FStep1;
-    double FStep2;
     double X0[2] = {x[0],x[1]};
+    double xTemp[2] = {x[0],x[1]};
     double h(0.01);
     for(int i(-2); i < 3; ++i)
     {
-      x[0] = X0[0]+i*h;
-      FPoints1[i+2] = ModelFunction2D->EvalPar(x,p);
-      x[0] = X0[0]+2*i*h;
-      FPoints2[i+2] = ModelFunction2D->EvalPar(x,p);
+      xTemp[0] = X0[0]+i*h;
+      FPoints1[i+2] = ModelFunction2D->EvalPar(xTemp,p);
+      xTemp[0] = X0[0]+2*i*h;
+      FPoints2[i+2] = ModelFunction2D->EvalPar(xTemp,p);
     }
-    FStep1 = (FPoints1[0] - 8*FPoints1[1] + 8*FPoints1[3] - FPoints1[4])/(12*h);
-    FStep2 = (FPoints2[0] - 8*FPoints2[1] + 8*FPoints2[3] - FPoints2[4])/(12*h);
-    CalculatedValue = (16*FStep1 - FStep2)/(16-1);
+    CalculatedValue = (FPoints1[0] - 8*FPoints1[1] + 8*FPoints1[3] - FPoints1[4])/(12*h);
   }
   else
   {
     double FPoints1[5];
     double FPoints2[5];
-    double FStep1;
-    double FStep2;
     double X0[1] = {x[0]};
+    double xTemp[2];
     double h(0.01);
     for(int i(-2); i < 3; ++i)
     {
-      x[0] = X0[0]+i*h;
-      FPoints1[i+2] = ModelFunction1D->EvalPar(x,p);
-      x[0] = X0[0]+2*i*h;
-      FPoints2[i+2] = ModelFunction1D->EvalPar(x,p);
+      xTemp[0] = X0[0]+i*h;
+      FPoints1[i+2] = ModelFunction1D->EvalPar(xTemp,p);
+      xTemp[0] = X0[0]+2*i*h;
+      FPoints2[i+2] = ModelFunction1D->EvalPar(xTemp,p);
     }
-    FStep1 = (FPoints1[0] - 8*FPoints1[1] + 8*FPoints1[3] - FPoints1[4])/(12*h);
-    FStep2 = (FPoints2[0] - 8*FPoints2[1] + 8*FPoints2[3] - FPoints2[4])/(12*h);
-    CalculatedValue = (16*FStep1 - FStep2)/(16-1);
+    CalculatedValue = (FPoints1[0] - 8*FPoints1[1] + 8*FPoints1[3] - FPoints1[4])/(12*h);
   }
   return CalculatedValue;
+  //return 0;
 }
 double NESTModel::BasicModel::DerivativeY(double* x, double* p)
 {
@@ -134,23 +130,21 @@ double NESTModel::BasicModel::DerivativeY(double* x, double* p)
   {
     double FPoints1[5];
     double FPoints2[5];
-    double FStep1;
-    double FStep2;
     double X0[2] = {x[0],x[1]};
+    double xTemp[2] = {x[0],x[1]};
     double h(0.1);
     for(int i(-2); i < 3; ++i)
     {
-      x[1] = X0[1]+i*h;
-      FPoints1[i+2] = ModelFunction2D->EvalPar(x,p);
-      x[1] = X0[1]+2*i*h;
-      FPoints2[i+2] = ModelFunction2D->EvalPar(x,p);
+      xTemp[1] = X0[1]+i*h;
+      FPoints1[i+2] = ModelFunction2D->EvalPar(xTemp,p);
+      xTemp[1] = X0[1]+2*i*h;
+      FPoints2[i+2] = ModelFunction2D->EvalPar(xTemp,p);
     }
-    FStep1 = (FPoints1[0] - 8*FPoints1[1] + 8*FPoints1[3] - FPoints1[4])/(12*h);
-    FStep2 = (FPoints2[0] - 8*FPoints2[1] + 8*FPoints2[3] - FPoints2[4])/(12*h);
-    CalculatedValue = (16*FStep1 - FStep2)/(16-1);
+    CalculatedValue = (FPoints1[0] - 8*FPoints1[1] + 8*FPoints1[3] - FPoints1[4])/(12*h);
   }
   else CalculatedValue = 0;
   return CalculatedValue;
+  //return 0;
 }
 
 bool NESTModel::BasicModel::Minimize()
@@ -172,6 +166,7 @@ bool NESTModel::BasicModel::Minimize()
       double Parameter, ParameterError;
       for(unsigned int i(0); i < NPar; ++i) //If successful, retrieve fit parameters and their error.
       {
+	if(Settings->Query("Hesse") == "true") MinuitMinimizer->mnexcm("HESSE", arglist, 2, ierflg);
 	MinuitMinimizer->GetParameter(i, Parameter, ParameterError);
 	Parameters.push_back(Parameter);
 	ParameterErrors.push_back(ParameterError);
@@ -194,20 +189,43 @@ void NESTModel::BasicModel::PrintResults()
 {
   if(Success)
   {
-    double MinChi2, EDM, ErrDef;
+    double MinChi2, EDM, ErrDef, CovMatrix[NPar][NPar];
     int NParI, NParX, IStat;
     MinuitMinimizer->mnstat(MinChi2, EDM, ErrDef, NParI, NParX, IStat);
+    MinuitMinimizer->mnemat(&CovMatrix[0][0],NPar);
+    std::ofstream OutputFile("FitResults.txt");
+    std::streambuf *coutBuf;
+    if(Settings->Query("ResultsToFile") == "true")
+    {
+      coutBuf = std::cout.rdbuf();
+      std::cout.rdbuf(OutputFile.rdbuf());
+    }
     std::cout << "******************************************************" << std::endl;
+    std::cout << "ModelType: " << ModelType << std::endl;
     std::cout << "ModelID: " << ID << std::endl;
     std::cout << "Minimum Chi^2: " << MinChi2 << std::endl;
     std::cout << "Reduced Chi^2: " << MinChi2/(NData-NParX) << std::endl;
+    std::cout << "PARAMETERS" << std::endl;
     for(unsigned int i(0); i < Parameters.size(); ++i)
     {
       std::cout << "Parameter " << i << ": "
 		<< Parameters.at(i) << " +/- " << ParameterErrors.at(i)
 		<< std::endl;
     }
+    std::cout << "CORRELATIONS" << std::endl;
+    for(unsigned int i(0); i < NPar; ++i)
+    {
+      for(unsigned int j(i+1); j < NPar; ++j)
+      {
+	std::cout << "Correlation between parameter " << i << " and " << j << ": "
+		  << std::setprecision(3)
+		  << CovMatrix[i][j]/(ParameterErrors.at(i) * ParameterErrors.at(j))
+		  << std::endl;
+      }
+    }
     std::cout << "******************************************************" << std::endl;
+    if(Settings->Query("ResultsToFile") == "true") std::cout.rdbuf(coutBuf);
+    OutputFile.close();
   }
   else std::cerr << "No results to print." << std::endl;
 }

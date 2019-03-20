@@ -41,8 +41,8 @@ DataObject::DataObject(std::string FileName, double DefaultYieldUncertainty, dou
 	DataYErrLow.push_back(DataList.at(i+4) == 0 ? DataList.at(i+3)*DefaultFieldUncertainty : DataList.at(i+4));
 	DataYErrHigh.push_back(DataList.at(i+5) == 0 ? DataList.at(i+3)*DefaultFieldUncertainty : DataList.at(i+5));
 	DataZ.push_back(DataList.at(i+6));
-	DataZErrLow.push_back(DataList.at(i+7) == 0 ? DataList.at(i+4)*DefaultYieldUncertainty : DataList.at(i+7));
-	DataZErrHigh.push_back(DataList.at(i+8) == 0 ? DataList.at(i+4)*DefaultYieldUncertainty : DataList.at(i+8));
+	DataZErrLow.push_back(DataList.at(i+7) == 0 ? DataList.at(i+6)*DefaultYieldUncertainty : DataList.at(i+7));
+	DataZErrHigh.push_back(DataList.at(i+8) == 0 ? DataList.at(i+6)*DefaultYieldUncertainty : DataList.at(i+8));
       }
       else std::cerr << "Data file configured incorrectly. Check for a missing entry in a column." << std::endl;
     }
@@ -95,9 +95,9 @@ std::ostream &operator<< (std::ostream &out, const DataObject &Obj)
 	<< Obj.DataXErrLow.at(i) << ','
 	<< Obj.DataXErrHigh.at(i) << ','
 	<< Obj.DataY.at(i) << ','
-	<< Obj.DataZ.at(i) << ','
 	<< Obj.DataYErrLow.at(i) << ','
 	<< Obj.DataYErrHigh.at(i) << ','
+	<< Obj.DataZ.at(i) << ','
 	<< Obj.DataZErrLow.at(i) << ','
 	<< Obj.DataZErrHigh.at(i) << std::endl;
   }
