@@ -194,7 +194,7 @@ void NESTModel::BasicModel::PrintResults()
     int NParI, NParX, IStat;
     MinuitMinimizer->mnstat(MinChi2, EDM, ErrDef, NParI, NParX, IStat);
     MinuitMinimizer->mnemat(&CovMatrix[0][0],NPar);
-    std::ofstream OutputFile("FitResults.txt");
+    std::ofstream OutputFile(static_cast<std::stringstream&>(std::stringstream("").flush() << "FitResults_" << ModelType << ID << ".txt").str().c_str());
     std::streambuf *coutBuf;
     if(Settings->Query("ResultsToFile") == "true")
     {
@@ -366,7 +366,7 @@ void NESTModel::BasicModel::DrawGraphs()
       GraphArray[FieldIndex]->GetYaxis()->SetRangeUser(ZLow,ZHigh);
       GraphArray[FieldIndex]->Draw("AP");
       FunctionArray[FieldIndex]->Draw("SAME");
-      FieldCanvas->SaveAs(static_cast<std::stringstream&>(std::stringstream("").flush() << PlotScheme << ModelType << "/Model" << ID << "_Field" << std::setw(2) << std::setfill('0') << FieldIndex << PlotExtension.c_str()).str().c_str());
+      if(PlotBins) FieldCanvas->SaveAs(static_cast<std::stringstream&>(std::stringstream("").flush() << PlotScheme << ModelType << ID << "_Field" << std::setw(2) << std::setfill('0') << FieldIndex << PlotExtension.c_str()).str().c_str());
       delete FieldCanvas;
       
     }
