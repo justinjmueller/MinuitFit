@@ -11,6 +11,7 @@
 #include "TMath.h"
 #include "TF2.h"
 #include "TF1.h"
+#include "TMatrixT.h"
 
 //Custom Includes
 #include "SettingsObject.h"
@@ -27,8 +28,13 @@ namespace NESTModel
     double DerivativeY(double* x, double* p);
     bool Minimize();
     void PrintResults();
+    void SaveParameters();
     void DrawGraphs();
     void SetDefaultField(double Field);
+    TMatrixT<double>& GetCovariance();
+    TMatrixT<double>& GetInvCovariance();
+    int GetNPar();
+    int GetNData();
     std::vector<double>& GetParameters();
     std::vector<double>& GetParameterErrors();
     std::vector<double>& GetDataX();
@@ -50,9 +56,13 @@ namespace NESTModel
     bool Is2DFit;
     double Chisquare;
     double EDM;
+    TMatrixT<double> Covariance;
+    TMatrixT<double> InvCovariance;
     std::shared_ptr<TMinuit> MinuitMinimizer;
     std::vector<double> InitialVect;
     std::vector<double> StepVect;
+    std::vector<std::string> Sets;
+    std::vector<std::string> Recipes;
     std::vector<double> LimitsLow;
     std::vector<double> LimitsHigh;
     std::vector<double> Parameters;
@@ -97,22 +107,30 @@ namespace NESTModel
 
       if(Difference < 0) Error += TMath::Power(GlobalModel->GetDataZErrHigh().at(datum), 2.0); //Add the higher error in the measurement if we estimated high.
       else Error += TMath::Power(GlobalModel->GetDataZErrLow().at(datum), 2.0); //Add the lower error in the measurment if we estimated low.
-      //Error += TMath::Power( (0.5*(GlobalModel->GetDataXErrLow().at(datum) + GlobalModel->GetDataXErrHigh().at(datum)))*(GlobalModel->DerivativeX(xData,par)), 2.0); //Add the error in the x independent variable.
-      //Error += TMath::Power( (0.5*(GlobalModel->GetDataYErrLow().at(datum) + GlobalModel->GetDataYErrHigh().at(datum)))*(GlobalModel->DerivativeY(xData,par)), 2.0); //Add the error in the y independent variable.
+      Error += TMath::Power( (0.5*(GlobalModel->GetDataXErrLow().at(datum) + GlobalModel->GetDataXErrHigh().at(datum)))*(GlobalModel->DerivativeX(xData,par)), 2.0); //Add the error in the x independent variable.
+      Error += TMath::Power( (0.5*(GlobalModel->GetDataYErrLow().at(datum) + GlobalModel->GetDataYErrHigh().at(datum)))*(GlobalModel->DerivativeY(xData,par)), 2.0); //Add the error in the y independent variable.
       WRSS += TMath::Power(Difference, 2.0) / Error;
-      /*std::cout << "********************************************************" << std::endl;
-      std::cout << "Function: " << (*GlobalModel)(xData,par) << std::endl;
-      std::cout << "Parameters: " << par[0] << ", " << par[1] << ", " << par[2] << ", " << par[3] << std::endl;
-      std::cout << "Error at : " << GlobalModel->GetDataX().at(datum) << "keV, " << xData[1] << "V/cm: " << WRSS << std::endl;
-      std::cout << "DerivativeX at : " << GlobalModel->GetDataX().at(datum) << "keV, " << xData[1] << "V/cm: " << GlobalModel->DerivativeX(xData,par) << std::endl;
-      std::cout << "DerivativeY at : " << GlobalModel->GetDataX().at(datum) << "keV, " << xData[1] << "V/cm: " << GlobalModel->DerivativeY(xData,par) << std::endl;
-      std::cout << "********************************************************" << std::endl;*/
       Error = 0;
-      
-      /*if(Difference < 0) WRSS += (TMath::Power(Difference, 2.0)) / ( TMath::Power(GlobalModel->GetDataZErrHigh().at(datum),2.0) + TMath::Power( (0.5*(GlobalModel->GetDataXErrLow().at(datum) + GlobalModel->GetDataXErrHigh().at(datum))*(GlobalModel->DerivativeX(xData, par)) ), 2.0) + TMath::Power( (0.5*(GlobalModel->GetDataYErrLow().at(datum) + GlobalModel->GetDataYErrHigh().at(datum))*(GlobalModel->DerivativeY(xData, par)) ), 2.0) );
-	else WRSS += (TMath::Power(Difference, 2.0)) / ( TMath::Power(GlobalModel->GetDataZErrLow().at(datum),2.0) + TMath::Power( (0.5*(GlobalModel->GetDataXErrLow().at(datum) + GlobalModel->GetDataXErrHigh().at(datum))*(GlobalModel->DerivativeX(xData, par)) ), 2.0) + TMath::Power( (0.5*(GlobalModel->GetDataYErrLow().at(datum) + GlobalModel->GetDataYErrHigh().at(datum))*(GlobalModel->DerivativeY(xData, par)) ), 2.0));*/
     }
     result = WRSS;
+  }
+
+  void Chi2Covariance(int& npar, double *x, double &result, double *par, int flag)
+  {
+    double xData[2];
+    int NData(GlobalModel->GetNData());
+    int NPar(GlobalModel->GetNPar());
+    TMatrixT<double> Difference(NData, 1);
+    TMatrixT<double> TMP(NData, 1);
+    result = 0;
+    for(unsigned int i(0); i < NData; ++i)
+    {
+      xData[0] = GlobalModel->GetDataX().at(i);
+      xData[1] = GlobalModel->GetDataY().at(i);
+      Difference(i,0) = GlobalModel->GetDataZ().at(i) - (*GlobalModel)(xData, par);
+    }
+    TMP.Mult(GlobalModel->GetInvCovariance(), Difference);
+    for(unsigned int i(0); i < NData; ++i) result += Difference(i,0) * TMP(i,0);
   }
 }
 #endif

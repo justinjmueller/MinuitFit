@@ -24,6 +24,7 @@
 #include "TH2F.h" //Dummy to create a TPaletteAxis object.
 #include "TPaletteAxis.h" //Gradient axis bar.
 #include "TGaxis.h" //Axis contained in TPaletteAxis.
+#include "TSystem.h" //Access to command line.
 
 //Custom includes
 #include "Models.h" //Header file for this implementation.
@@ -47,12 +48,14 @@ NESTModel::BasicModel::BasicModel(std::string modeltype, unsigned int id)
     LimitsLow = FuncObject->GetLimitsLow(); //Load lower limits on parameters.
     LimitsHigh = FuncObject->GetLimitsHigh(); //Load upper limits on parameters.
     StepVect = FuncObject->GetStepSizes(); //Load step sizes.
+    Sets = FuncObject->GetSets(); //Load list of sets.
+    Recipes = FuncObject->GetRecipes(); //Load list of recipes.
     NPar = InitialVect.size(); //Set the number of parameters.
     MinuitMinimizer.reset(new TMinuit(NPar)); //Create the TMinuit object.
     Is2DFit = FuncObject->GetFunction().find("y") != std::string::npos;
     if(Is2DFit) ModelFunction2D.reset(new TF2("ModelFunction", FuncObject->GetFunction().c_str(), 0, 1000, 0, 5000)); //Create the 2D function that will do the heavy lifting for the function evaluating.
     else ModelFunction1D.reset(new TF1("ModelFunction", FuncObject->GetFunction().c_str(),0,1000));
-    DataObject DataObj(Settings->Query(std::string(ModelType+"Data")), std::stod(Settings->Query("DefaultYieldUncertainty")), std::stod(Settings->Query("DefaultEnergyUncertainty")), std::stod(Settings->Query("DefaultEnergyUncertainty")), std::stod(Settings->Query("LowField"))); //Load data from the data file.
+    DataObject DataObj(Sets, Recipes, std::stod(Settings->Query("DefaultYieldUncertainty")), std::stod(Settings->Query("DefaultEnergyUncertainty")), std::stod(Settings->Query("DefaultEnergyUncertainty")), std::stod(Settings->Query("LowField"))); //Load data from the data file.
     DataX = DataObj.GetDataX(); //Set energy data.
     DataY = DataObj.GetDataY(); //Set field data.
     DataZ = DataObj.GetDataZ(); //Set yield data.
@@ -63,6 +66,11 @@ NESTModel::BasicModel::BasicModel(std::string modeltype, unsigned int id)
     DataZErrLow = DataObj.GetDataZErrLow(); //Set lower yield error bar.
     DataZErrHigh = DataObj.GetDataZErrHigh(); //Set upper yield error bar.
     NData = DataX.size(); //Set NData properly.
+    Covariance.ResizeTo(NData, NData);
+    Covariance = DataObj.GetCovariance(); //Set covariance matrix.
+    InvCovariance.ResizeTo(NData, NData);
+    InvCovariance = Covariance.Invert();
+    //Covariance.Print();
   }
   else std::cerr << "NESTModel::BasicModel::BasicModel(): A proper model was not found in definitions file." << std::endl;
 }
@@ -91,7 +99,6 @@ double NESTModel::BasicModel::DerivativeX(double* x, double* p)
   if(Is2DFit)
   {
     double FPoints1[5];
-    double FPoints2[5];
     double X0[2] = {x[0],x[1]};
     double xTemp[2] = {x[0],x[1]};
     double h(0.01);
@@ -99,8 +106,6 @@ double NESTModel::BasicModel::DerivativeX(double* x, double* p)
     {
       xTemp[0] = X0[0]+i*h;
       FPoints1[i+2] = ModelFunction2D->EvalPar(xTemp,p);
-      xTemp[0] = X0[0]+2*i*h;
-      FPoints2[i+2] = ModelFunction2D->EvalPar(xTemp,p);
     }
     CalculatedValue = (FPoints1[0] - 8*FPoints1[1] + 8*FPoints1[3] - FPoints1[4])/(12*h);
   }
@@ -115,8 +120,6 @@ double NESTModel::BasicModel::DerivativeX(double* x, double* p)
     {
       xTemp[0] = X0[0]+i*h;
       FPoints1[i+2] = ModelFunction1D->EvalPar(xTemp,p);
-      xTemp[0] = X0[0]+2*i*h;
-      FPoints2[i+2] = ModelFunction1D->EvalPar(xTemp,p);
     }
     CalculatedValue = (FPoints1[0] - 8*FPoints1[1] + 8*FPoints1[3] - FPoints1[4])/(12*h);
   }
@@ -137,8 +140,6 @@ double NESTModel::BasicModel::DerivativeY(double* x, double* p)
     {
       xTemp[1] = X0[1]+i*h;
       FPoints1[i+2] = ModelFunction2D->EvalPar(xTemp,p);
-      xTemp[1] = X0[1]+2*i*h;
-      FPoints2[i+2] = ModelFunction2D->EvalPar(xTemp,p);
     }
     CalculatedValue = (FPoints1[0] - 8*FPoints1[1] + 8*FPoints1[3] - FPoints1[4])/(12*h);
   }
@@ -152,7 +153,7 @@ bool NESTModel::BasicModel::Minimize()
   if(Success)
   {
     MinuitMinimizer->SetPrintLevel(stoi(Settings->Query("Verbosity"))); //Set how loud the minimizer will be. 0 is normal, -1 low, and 1 high.
-    MinuitMinimizer->SetFCN(NESTModel::Chi2); //Set the function to be minimized.
+    MinuitMinimizer->SetFCN(NESTModel::Chi2Covariance); //Set the function to be minimized.
     double arglist[5]; //Create an array for possible arguments.
     int ierflg(0); //Error flag. Modified by minuit commands.
     arglist[0] = std::stod(Settings->Query("UP")); //Load the value of UP.
@@ -203,6 +204,7 @@ void NESTModel::BasicModel::PrintResults()
     std::cout << "******************************************************" << std::endl;
     std::cout << "ModelType: " << ModelType << std::endl;
     std::cout << "ModelID: " << ID << std::endl;
+    std::cout << "ModelString: " << FuncObject->GetFunction() << std::endl;
     std::cout << "Minimum Chi^2: " << MinChi2 << std::endl;
     std::cout << "Reduced Chi^2: " << MinChi2/(NData-NParX) << std::endl;
     std::cout << "PARAMETERS" << std::endl;
@@ -230,6 +232,21 @@ void NESTModel::BasicModel::PrintResults()
   else std::cerr << "No results to print." << std::endl;
 }
 
+void NESTModel::BasicModel::SaveParameters()
+{
+  double CovMatrix[NPar][NPar];
+  MinuitMinimizer->mnemat(&CovMatrix[0][0], NPar);
+  std::ofstream OutputFile(static_cast<std::stringstream&>(std::stringstream("").flush()  << ModelType << ID << "Log.txt").str().c_str());
+  for(unsigned int i(0); i < Parameters.size()-1; ++i) OutputFile << Parameters.at(i) << ",";
+  OutputFile << Parameters.back() << std::endl;
+  for(unsigned int i(0); i < Parameters.size(); ++i)
+  {
+    for(unsigned int j(0); j < Parameters.size()-1; ++j) OutputFile << CovMatrix[i][j] << ",";
+    OutputFile << CovMatrix[i][Parameters.size()-1] << std::endl;
+  }
+  OutputFile.close();
+}
+
 void NESTModel::BasicModel::DrawGraphs()
 {
   unsigned int CheckInt(0);
@@ -250,6 +267,7 @@ void NESTModel::BasicModel::DrawGraphs()
   bool LogY(Settings->Query("LogY") == "true" ? true : false);
   bool OutputToFile(Settings->Query("OutputToFile") == "true" ? true : false);
   bool DrawPave(Settings->Query("DrawPave") == "true" ? true : false);
+  bool PlotBins(Settings->Query("PlotBins") == "true" ? true : false);
   unsigned int PaletteEnumOld(stoi(Settings->Query("Palette")));
   unsigned int PaletteEnumNew(stoi(Settings->Query("PaletteV6.04")));
   unsigned int MarkerStyle(stoi(Settings->Query("MarkerStyle")));
@@ -308,6 +326,8 @@ void NESTModel::BasicModel::DrawGraphs()
     unsigned int FieldIndex(0); //Will need this later.
     double ParameterArr[NPar]; //Need to have parameters stored in an array so we can set the functions parameters.
     unsigned int ColorList[MapSize]; //Stores the color of each function.
+    unsigned int TempColorID(0); //Stores the color index of a single field bin.
+    TCanvas* FieldCanvas;
     TMultiGraph* MultiGraph = new TMultiGraph(); //Create the multigraph object.
     MultiGraph->SetTitle(std::string(Title+";"+XTitle+";"+ZTitle).c_str());
     for(std::map<int, std::vector< std::vector<double> > >::iterator MapIterator = Map.begin(); MapIterator != Map.end(); ++MapIterator, ++FieldIndex)
@@ -325,7 +345,9 @@ void NESTModel::BasicModel::DrawGraphs()
       std::copy(Parameters.begin(), Parameters.end(), ParameterArr); //Copy the best fit parameters.
       FunctionArray[FieldIndex]->SetParameters(ParameterArr); //Set the parameters in the function.
       DefaultField = -1; //Reset after creating the functions.
-      ColorList[FieldIndex] = Colors.at(int(((MapIterator->first)*FieldBinSize + 0.5*FieldBinSize - YLow)/((YHigh - YLow)/(Colors.size()-1)))); //Calculate the color associated with this field value by breaking the field range into bins.
+      TempColorID = int(((MapIterator->first)*FieldBinSize + 0.5*FieldBinSize - YLow)/((YHigh - YLow)/(Colors.size()-1))); //Calculate the color associated with this field value by breaking the field range into bins.
+      if(TempColorID > Colors.size()-1) TempColorID = Colors.size()-1; //Make sure that we haven't run off the end of the color vector.
+      ColorList[FieldIndex] = Colors.at(TempColorID); //Set color value.
       //Set graph and function draw options.
       GraphArray[FieldIndex]->SetMarkerColor(ColorList[FieldIndex]);
       GraphArray[FieldIndex]->SetLineColor(ColorList[FieldIndex]);
@@ -335,6 +357,18 @@ void NESTModel::BasicModel::DrawGraphs()
       GraphArray[FieldIndex]->SetLineWidth(LineSize);
       GraphArray[FieldIndex]->SetLineStyle(LineStyle);
       MultiGraph->Add(GraphArray[FieldIndex]);
+
+      FieldCanvas = new TCanvas("FieldCanvas", "FieldCanvas", 1920, 1080);
+      GraphArray[FieldIndex]->SetTitle(std::string(std::to_string(int((MapIterator->first)*FieldBinSize - YLow)) + " - " + std::string(std::to_string(int((MapIterator->first)*FieldBinSize + FieldBinSize - YLow))) +" V/cm;"+XTitle+";"+ZTitle).c_str());
+      GraphArray[FieldIndex]->GetXaxis()->CenterTitle();
+      GraphArray[FieldIndex]->GetYaxis()->CenterTitle();
+      GraphArray[FieldIndex]->GetXaxis()->SetLimits(XLow,XHigh);
+      GraphArray[FieldIndex]->GetYaxis()->SetRangeUser(ZLow,ZHigh);
+      GraphArray[FieldIndex]->Draw("AP");
+      FunctionArray[FieldIndex]->Draw("SAME");
+      FieldCanvas->SaveAs(static_cast<std::stringstream&>(std::stringstream("").flush() << PlotScheme << ModelType << "/Model" << ID << "_Field" << std::setw(2) << std::setfill('0') << FieldIndex << PlotExtension.c_str()).str().c_str());
+      delete FieldCanvas;
+      
     }
     auto Canvas = new TCanvas("YieldCanvas", "YieldCanvas", 1920, 1080);
     if(LogX) Canvas->SetLogx();
@@ -380,6 +414,7 @@ void NESTModel::BasicModel::DrawGraphs()
     {
       Canvas->Write();
       MultiGraph->Write();
+      for(unsigned int i(0); i < MapSize; ++i) FunctionArray[i]->Write();
     }
     Canvas->SaveAs(static_cast<std::stringstream&>(std::stringstream("").flush() << PlotScheme << ModelType << "_Model" << ID << PlotExtension.c_str()).str().c_str());
     delete Canvas;
@@ -388,6 +423,16 @@ void NESTModel::BasicModel::DrawGraphs()
     delete HistDummy;
     if(DrawPave) delete Pave;
     for(unsigned int i(0); i < MapSize; ++i) delete FunctionArray[i];
+
+    if(PlotExtension == ".pdf" && PlotBins)
+    {
+      std::string GlobalPDF = static_cast<std::stringstream&>(std::stringstream("").flush() << PlotScheme << ModelType << "_Model" << ID << PlotExtension.c_str()).str();
+      std::string IndividualPDF = static_cast<std::stringstream&>(std::stringstream("").flush() << PlotScheme << ModelType << ID << "_Field*" << PlotExtension.c_str()).str();
+      std::string NewPDF = static_cast<std::stringstream&>(std::stringstream("").flush() << PlotScheme << ModelType << ID << "Merged" << PlotExtension.c_str()).str();
+      std::string Command = std::string("pdftk " + GlobalPDF + " " + IndividualPDF + " cat output " + NewPDF);
+      gSystem->Exec(Command.c_str());
+      gSystem->Exec(std::string("rm " + IndividualPDF).c_str());
+    }
   }
   else
   {
@@ -450,62 +495,34 @@ void NESTModel::BasicModel::DrawGraphs()
       
 }
 
-void NESTModel::BasicModel::SetDefaultField(double Field)
-{
-  DefaultField = Field;
-}
+void NESTModel::BasicModel::SetDefaultField(double Field) { DefaultField = Field; }
 
-std::vector<double>& NESTModel::BasicModel::GetParameters()
-{
-  return Parameters;
-}
+std::vector<double>& NESTModel::BasicModel::GetParameters() { return Parameters; }
 
-std::vector<double>& NESTModel::BasicModel::GetParameterErrors()
-{
-  return ParameterErrors;
-}
+std::vector<double>& NESTModel::BasicModel::GetParameterErrors() { return ParameterErrors; }
 
-std::vector<double>& NESTModel::BasicModel::GetDataX()
-{
-  return DataX;
-}
+TMatrixT<double>& NESTModel::BasicModel::GetCovariance() { return Covariance; }
 
-std::vector<double>& NESTModel::BasicModel::GetDataXErrLow()
-{
-  return DataXErrLow;
-}
+TMatrixT<double>& NESTModel::BasicModel::GetInvCovariance() { return InvCovariance; }
 
-std::vector<double>& NESTModel::BasicModel::GetDataXErrHigh()
-{
-  return DataXErrHigh;
-}
+int NESTModel::BasicModel::GetNPar() { return NPar; }
 
-std::vector<double>& NESTModel::BasicModel::GetDataY()
-{
-  return DataY;
-}
+int NESTModel::BasicModel::GetNData() { return NData; }
 
-std::vector<double>& NESTModel::BasicModel::GetDataYErrLow()
-{
-  return DataYErrLow;
-}
+std::vector<double>& NESTModel::BasicModel::GetDataX() { return DataX; }
 
-std::vector<double>& NESTModel::BasicModel::GetDataYErrHigh()
-{
-  return DataYErrHigh;
-}
+std::vector<double>& NESTModel::BasicModel::GetDataXErrLow() { return DataXErrLow; }
 
-std::vector<double>& NESTModel::BasicModel::GetDataZ()
-{
-  return DataZ;
-}
+std::vector<double>& NESTModel::BasicModel::GetDataXErrHigh() { return DataXErrHigh; }
 
-std::vector<double>& NESTModel::BasicModel::GetDataZErrLow()
-{
-  return DataZErrLow;
-}
+std::vector<double>& NESTModel::BasicModel::GetDataY() { return DataY; }
 
-std::vector<double>& NESTModel::BasicModel::GetDataZErrHigh()
-{
-  return DataZErrHigh;
-}
+std::vector<double>& NESTModel::BasicModel::GetDataYErrLow() { return DataYErrLow; }
+
+std::vector<double>& NESTModel::BasicModel::GetDataYErrHigh() { return DataYErrHigh; }
+
+std::vector<double>& NESTModel::BasicModel::GetDataZ() { return DataZ; }
+
+std::vector<double>& NESTModel::BasicModel::GetDataZErrLow() { return DataZErrLow; }
+
+std::vector<double>& NESTModel::BasicModel::GetDataZErrHigh() { return DataZErrHigh; }

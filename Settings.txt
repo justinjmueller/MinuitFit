@@ -4,26 +4,6 @@
 #This location is relative to where you're running the program from.
 FunctionDefinitions:"ModelDefinitions.txt"
 
-#"ERQYData" sets the file name of the file containing ER charge yield data.
-#This location is relative to where you're running the program from.
-ERQYData:"ERChargeYield.csv"
-
-#"ERLYData" sets the file name of the file containing ER light yield data.
-#This location is relative to where you're running the program from.
-ERLYData:"ERLightYield.csv"
-
-#"NRQYData" sets the file name of the file containing NR charge yield data.
-#This location is relative to where you're running the program from.
-NRQYData:"NRChargeYield.csv"
-
-#"NRLYData" sets the file name of the file containing NR light yield data.
-#This location is relative to where you're running the program from.
-NRLYData:"NRLightYield.csv"
-
-#"NRTYData" sets the file name of the file containing NR total yield data.
-#This location is relative to where you're running the program from.
-NRTYData:"NRTotalYield.csv"
-
 #"Tolerance" affects how close to the minimum (Estimated distance to minimum - EDM) the minimizer
 #needs to be before stopping. The minimizer stops when EDM < 0.01*[Tolerance]*UP (UP defined below).
 Tolerance:"0.1"
@@ -48,7 +28,7 @@ Algorithm:"MIGRAD"
 
 #"Hesse" specifies whether the minimizer will also call HESSE after the original minimization.
 #This should make sure that our parameter errors are estimated as accurately as possible.
-Hesse:"true"
+Hesse:"false"
 
 #"ResultsToFile" specifies whether to write the fit results to a file, as opposed to stdout.
 ResultsToFile:"true"
@@ -82,8 +62,8 @@ ERQYXLow:"0.1"
 ERLYXLow:"0.1"
 
 #"XHigh" specifies the upper bound of the energy range produced by BasicModel::DrawGraphs().
-NRQYXHigh:"150"
-NRLYXHigh:"150"
+NRQYXHigh:"300"
+NRLYXHigh:"500"
 NRTYXHigh:"150"
 ERQYXHigh:"10000"
 ERLYXHigh:"10000"
@@ -104,27 +84,27 @@ ERLYYHigh:"10000"
 
 #"ZLow" specifies the lower bound of the yield range produced by BasicModel::DrawGraphs().
 NRQYZLow:"0"
-NRLYZLow:"0"
+NRLYZLow:"1"
 NRTYZLow:"0"
 ERQYZLow:"0"
 ERLYZLow:"0"
 
 #"ZHigh" specifies the upper bound of the yield range produced by BasicModel::DrawGraphs().
 NRQYZHigh:"10"
-NRLYZHigh:"15"
+NRLYZHigh:"30"
 NRTYZHigh:"25"
 ERQYZHigh:"50"
 ERLYZHigh:"50"
 
 #"LogX" specifies whether or not to set the x-axis to a logarithmic scale.
-LogX:"true"
+LogX:"false"
 
 #"LogY" specifies whether or not to set the y-axis to a logarithmic scale.
 LogY:"false"
 
 #"Palette" specifies the color palette. See the TColor class reference page for a list.
 #For example, kVisibleSpectrum is index 107.
-PaletteV6.04:"107"
+PaletteV6.04:"105"
 Palette:"55"
 
 #"ROOTV6.04" specifies whether to use "PaletteV6.04" or "Palette". This switch is here
@@ -145,7 +125,7 @@ LineStyle:"1"
 LineSize:"1"
 
 #"OutputToFile" specifies whether or not to write the graphs to a .root file.
-OutputToFile:"false"
+OutputToFile:"true"
 
 #"ROOTName" specifies the name of the output file, if output is desired.
 ROOTName:"./OutputFile.root"
@@ -163,6 +143,10 @@ PlotExtension:".pdf"
 #"DrawPave" specifies whether or not to draw a TPaveText containing the model formula, the
 #parameters, and their errors on the plot drawn by DrawGraphs().
 DrawPave:"false"
+
+#"PlotBins" specifies whether or not to create a PDF that contains a plot of each separate
+#field bin.
+PlotBins:"true"
 
 #"FieldBinSize" specifies the bin size used to group field values. This helps avoid overcrowding
 #when there are a large number of distinct field values.

@@ -14,7 +14,7 @@
 FunctionObject::FunctionObject(std::string Definitions, std::string SearchString, unsigned int ModelID, bool& Success)
 {
   std::ifstream Input(Definitions);
-  std::string Line, FunctionString, ParameterString, LimitLowString, LimitHighString, StepSizesString, Tmp, ModelIDString;
+  std::string Line, FunctionString, ParameterString, LimitLowString, LimitHighString, StepSizesString, Tmp, ModelIDString, SetsString, RecipesString;
   std::size_t First, Last;
   bool Found(false);
 
@@ -58,6 +58,20 @@ FunctionObject::FunctionObject(std::string Definitions, std::string SearchString
 	  Last = Line.find("\"",First+1);
 	  StepSizesString = Line.substr(First+1,Last-First-1);
 	  DefinitionsMap.emplace(SearchString+std::string("S")+std::to_string(ModelID), StepSizesString);
+	}
+	else if(Line.find(SearchString+std::string("Sets")) !=std::string::npos)
+	{
+	  First = Line.find("\"");
+	  Last = Line.find("\"", First+1);
+	  SetsString = Line.substr(First+1,Last-First-1);
+	  DefinitionsMap.emplace(SearchString+std::string("Sets"), SetsString);
+	}
+	else if(Line.find(SearchString+std::string("Recipes")) !=std::string::npos)
+	{
+	  First = Line.find("\"");
+	  Last = Line.find("\"", First+1);
+	  RecipesString = Line.substr(First+1,Last-First-1);
+	  DefinitionsMap.emplace(SearchString+std::string("Recipes"), RecipesString);
 	}
 	Found = (FunctionString != "" && ParameterString != "" && LimitLowString != "", LimitHighString != "" && StepSizesString != "");	
       }
@@ -113,6 +127,28 @@ FunctionObject::FunctionObject(std::string Definitions, std::string SearchString
       }
     }
     if(Tmp != "") StepSizes.push_back(std::stod(Tmp));
+    Tmp = "";
+    for(unsigned int i(0); i < SetsString.length(); ++i)
+    {
+      if(SetsString[i] != ',') Tmp += SetsString[i];
+      else
+      {
+	Sets.push_back(Tmp);
+	Tmp = "";
+      }
+    }
+    if(Tmp != "") Sets.push_back(Tmp);
+    Tmp = "";
+    for(unsigned int i(0); i < RecipesString.length(); ++i)
+    {
+      if(RecipesString[i] != ',') Tmp += RecipesString[i];
+      else
+      {
+	Recipes.push_back(Tmp);
+	Tmp = "";
+      }
+    }
+    if(Tmp != "") Recipes.push_back(Tmp);
     Success = true;
   }
   else Success = false;
@@ -140,4 +176,14 @@ std::vector<double> FunctionObject::GetLimitsHigh()
 std::vector<double> FunctionObject::GetStepSizes()
 {
   return StepSizes;
+}
+
+std::vector<std::string> FunctionObject::GetSets()
+{
+  return Sets;
+}
+
+std::vector<std::string> FunctionObject::GetRecipes()
+{
+  return Recipes;
 }
